@@ -8,38 +8,104 @@
 
 ## Architecture
 
-The protocol follows a linear execution path involving a reboot cycle to bypass kernel protections.
+The protocol executes in three distinct phases, utilizing a reboot cycle to transition between **Normal Mode** (Ring 3 check/prep) and **Safe Mode** (Kernel bypass).
+
+### 1. Global Lifecycle
+High-level view of the system state transitions.
 
 ```mermaid
-sequenceDiagram
-    participant User
-    participant Prepare as 1_Prepare
-    participant OS as Windows API
-    participant SafeMode as Safe Mode
-    participant Payload as 2_Payload
-    participant Registry as Registry
+stateDiagram-v2
+    direction LR
+    
+    state "Normal Mode (Initial)" as NM1
+    state "Safe Mode (Networking)" as SM
+    state "Normal Mode (Post-Op)" as NM2
+    
+    NM1 --> Reboot_1: 1_prepare_safemode.ps1
+    Reboot_1 --> SM: BCD: safeboot network
+    SM --> Reboot_2: 2_kill_defender.ps1 (RunOnce)
+    Reboot_2 --> NM2: BCD: safeboot removed
+    
+    note right of NM1
+        - Admin Check
+        - Restore Point
+        - Payload Staging
+    end note
+    
+    note right of SM
+        - ACL Takeover
+        - Service Disable
+        - GPO Injection
+    end note
+    
+    note right of NM2
+        - User Verification
+        - Artifact Cleanup
+    end note
+```
 
-    User->>Prepare: Execute (Admin)
-    Prepare->>OS: Validate Admin & TamperProtection
-    Prepare->>User: 24H2 Safety Check (Password vs PIN)
-    Prepare->>OS: Create Restore Point
-    Prepare->>Registry: Inject RunOnce(*)
-    Prepare->>OS: BCD Set Safeboot
-    Prepare->>OS: Restart
+### 2. Phase 1: Preparation Vector
+Detailed logic flow of `1_prepare_safemode.ps1`.
 
-    Note over OS, SafeMode: Reboot
+```mermaid
+graph TD
+    %% Styling
+    classDef check fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef action fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef critical fill:#ffebee,stroke:#c62828,stroke-width:2px;
+    classDef system fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
 
-    SafeMode->>Payload: Auto-Run (RunOnce)
-    Payload->>Registry: ACL Takeover (Admin)
-    Payload->>Registry: Disable Services (Start=4)
-    Payload->>OS: Disable Tasks
-    Payload->>Registry: Apply Policies
-    Payload->>OS: BCD Delete Safeboot
-    Payload->>OS: Restart
+    Start([Start: 1_prepare_safemode.ps1]) --> AdminCheck{Admin Privileges?}
+    AdminCheck -- No --> Exit1[Exit: Fatal Error]:::critical
+    AdminCheck -- Yes --> SafetyCheck{24H2 Safety Interlock<br/>(User Confirmation)}:::check
 
-    Note over SafeMode, User: Reboot
+    SafetyCheck -- "No Password / Cancel" --> Exit2[Exit: Safety Abort]:::critical
+    SafetyCheck -- "Confirmed" --> TamperCheck{Tamper Protection<br/>Disabled?}:::check
 
-    User->>User: Verify Status
+    TamperCheck -- No --> Exit3[Exit: Manual Action Req]:::critical
+    TamperCheck -- Yes --> RestorePoint[Create Restore Point<br/>Checkpoint-Computer]:::action
+
+    RestorePoint --> StagePayload[Stage Payload<br/>C:\DefenderKill\2_kill_defender.ps1]:::action
+    StagePayload --> GPOPre[Remove GPO Blockers<br/>DisableRunOnce]:::action
+    GPOPre --> InjectRunOnce[Inject RunOnce Trigger<br/>Key: *killSlop_Payload<br/>Value: Powershell -File ...]:::critical
+
+    InjectRunOnce --> SetSafeBoot[BCD Set Safeboot Network]:::system
+    SetSafeBoot --> Restart[System Restart]:::system
+```
+
+### 3. Phase 2: Neutralization (The Kill)
+Detailed logic flow of `2_kill_defender.ps1` executing in Safe Mode.
+
+```mermaid
+graph TD
+    %% Styling
+    classDef loop fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef attack fill:#ffebee,stroke:#c62828,stroke-width:2px;
+    classDef config fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef exit fill:#263238,stroke:#eceff1,stroke-width:2px,color:#fff;
+
+    Start([Start: RunOnce Auto-Run]):::exit --> LogStart[Init Logging<br/>C:\DefenderKill\log.txt]:::config
+    LogStart --> ServiceLoop[[Loop: Target Services]]:::loop
+    
+    subgraph Service Neutralization
+        ServiceLoop --> ACL[Grant-RegistryAccess<br/>TakeOwnership + FullControl]:::attack
+        ACL --> DisableSvc[Set Start = 4 (Disabled)]:::attack
+        DisableSvc --> NextSvc{More Services?}
+        NextSvc -- Yes --> ServiceLoop
+    end
+    
+    NextSvc -- No --> TaskKill[Disable Scheduled Tasks<br/>\Microsoft\Windows\Windows Defender\*]:::attack
+    
+    TaskKill --> GPOInject[[Inject Group Policies]]:::config
+    
+    subgraph GPO Overrides
+        GPOInject --> DefPol[DisableAntiSpyware = 1]
+        GPOInject --> RTPol[DisableRealtimeMonitoring = 1]
+        GPOInject --> SpyNet[SubmitSamplesConsent = 2]
+    end
+    
+    SpyNet --> CleanBoot[BCD Delete Safeboot]:::config
+    CleanBoot --> Reboot[Restart System]:::exit
 ```
 
 ## Prerequisites
