@@ -119,7 +119,7 @@ try {
     [TokenManipulator]::EnablePrivilege("SeRestorePrivilege") | Out-Null
     Write-KillSlopLog "Privileges Escalated (SeTakeOwnership, SeRestore)" "INIT" "Magenta"
 
-    Write-KillSlopLog "=== killSlop v0.0.1 INITIATED ===" "INIT" "Magenta"
+    Write-KillSlopLog "=== killSlop v0.0.2 INITIATED ===" "INIT" "Magenta"
 
     # 1. SERVICE CONFIGURATION
     Write-KillSlopLog "Configuring Services..." "PROC" "Cyan"

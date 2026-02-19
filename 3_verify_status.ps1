@@ -18,7 +18,7 @@ param()
 $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "   killSlop v0.0.1 // VERIFICATION (DEEP DIVE)" -ForegroundColor Cyan
+Write-Host "   killSlop v0.0.2 // VERIFICATION (DEEP DIVE)" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -38,7 +38,7 @@ if (Test-Path $LogPath) {
     }
 
     Write-Host "   - Operations Logged: $($LogContent.Count)" -ForegroundColor Gray
-    Write-Host "   - Sucessful Actions: $($Success.Count)" -ForegroundColor Gray
+    Write-Host "   - Successful Actions: $($Success.Count)" -ForegroundColor Gray
 } else {
     Write-Warning "[WARN] LOG FILE NOT FOUND ($LogPath)."
 }
