@@ -3,6 +3,7 @@
 
 # Claude Code local settings (machine-specific)
 .claude/
+CLAUDE.md
 
 # Artifacts & Staging (never commit operational artifacts)
 *.log
