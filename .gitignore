@@ -4,9 +4,15 @@
 # Claude Code local settings (machine-specific)
 .claude/
 
-# Artifacts & Staging (never commit operational artefacts)
+# Artifacts & Staging (never commit operational artifacts)
 *.log
 *.zip
+*.tmp
+*~
+
+# Credentials & Secrets
+.env
+*.secret
 
 # Windows artifacts
 Thumbs.db

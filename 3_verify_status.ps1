@@ -55,7 +55,8 @@ if ($Procs) {
 
 # 3. SERVICE CONFIGURATION AUDIT
 Write-Host "`n[INFO] AUDITING KERNEL SERVICE CONFIGURATION..." -ForegroundColor Gray
-# Synchronized List with 2_kill_defender.ps1
+# SYNC-REQUIRED: This list is mirrored in 2_kill_defender.ps1.
+# Any modification there MUST be reflected here and vice versa.
 $Services = @(
     "WinDefend",   # Antivirus Service
     "Sense",       # Advanced Threat Protection
@@ -70,6 +71,11 @@ $Services = @(
     "SenseCncProxy" # Defender for Endpoint C&C (24H2)
 )
 
+$StartTypeMap  = @{ 0 = 'Boot'; 1 = 'System'; 2 = 'Automatic'; 3 = 'Manual'; 4 = 'Disabled' }
+$CountDisabled = 0
+$CountRunning  = 0
+$CountMissing  = 0
+
 foreach ($SvcName in $Services) {
     $Svc = Get-Service -Name $SvcName -ErrorAction SilentlyContinue
 
@@ -82,7 +88,10 @@ foreach ($SvcName in $Services) {
         try {
             # Direct Registry Query for Truth regarding Start Type
             $RegStart = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$SvcName" -ErrorAction Stop).Start
-            $StartType = if ($null -ne $RegStart) { $RegStart.ToString() } else { "MISSING" }
+            if ($null -ne $RegStart) {
+                $mapped = $StartTypeMap[[int]$RegStart]
+                $StartType = if ($null -ne $mapped) { $mapped } else { "UNKNOWN($RegStart)" }
+            } else { $StartType = "MISSING" }
         } catch {
             $StartType = "ACCESS_DENIED/MISSING"
         }
@@ -91,14 +100,24 @@ foreach ($SvcName in $Services) {
 
         if ($Svc.Status -eq 'Running' -or ($null -ne $RegStart -and $RegStart -ne 4)) {
             $Color = "Red" # Failed state
+            if ($Svc.Status -eq 'Running') { $CountRunning++ }
         } elseif ($RegStart -eq 4) {
             $Color = "Green" # Compliance
+            $CountDisabled++
         }
+    } else {
+        $CountMissing++
     }
 
-    Write-Host ("   {0,-20} | STATE: {1,-10} | START_TYPE: {2}" -f $SvcName, $StatusStr, $StartType) -ForegroundColor $Color
+    Write-Host ("   {0,-22} | STATE: {1,-10} | START_TYPE: {2}" -f $SvcName, $StatusStr, $StartType) -ForegroundColor $Color
 }
 
+$Total    = $Services.Count
+$SummaryColor = if ($CountRunning -gt 0) { "Red" } else { "Green" }
+Write-Host ""
+Write-Host ("=" * 70) -ForegroundColor Cyan
+Write-Host ("   SUMMARY: {0}/{1} DISABLED | {2} RUNNING (ALERT) | {3} MISSING" -f $CountDisabled, $Total, $CountRunning, $CountMissing) -ForegroundColor $SummaryColor
+Write-Host ("=" * 70) -ForegroundColor Cyan
 Write-Host ""
 Write-Host "VERIFICATION CYCLE COMPLETE." -ForegroundColor Cyan
 Pause

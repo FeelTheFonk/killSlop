@@ -31,7 +31,7 @@ Normal Mode (Admin)         Safe Mode (Networking)       Normal Mode (Post-Op)
 - Payload staging           - Registry ACL takeover       - Service registry check
 - RunOnce* injection        - Service disable (11x)
 - BCD safeboot set          - Task disable
-- Forced reboot             - GPO injection (12 vals)
+- Forced reboot             - GPO injection (10 vals)
                             - BCD safeboot removed
                             - Forced reboot
 ```
@@ -40,7 +40,7 @@ Normal Mode (Admin)         Safe Mode (Networking)       Normal Mode (Post-Op)
 
 **Privilege escalation in Phase 2:** An inline C# `TokenManipulator` class is compiled at runtime via `Add-Type` to call `advapi32.dll` directly and enable `SeTakeOwnershipPrivilege`/`SeRestorePrivilege` on the process token.
 
-**Staging directory:** `C:\DefenderKill\` — contains the staged payload and the log file `killSlop_log.txt`.
+**Staging directory:** `C:\DefenderKill\` — contains the staged payload, the structured log `killSlop_log.txt`, and the raw PowerShell transcript `killSlop_transcript.txt`.
 
 ## Commit conventions
 
