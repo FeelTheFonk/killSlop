@@ -18,6 +18,9 @@
     PLATFORM: Windows 11 (23H2 / 24H2)
 #>
 
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
+param()
+
 # CONFIGURATION
 $ErrorActionPreference = "Stop"
 $PayloadSource = Join-Path $PSScriptRoot "2_kill_defender.ps1"
@@ -32,7 +35,7 @@ if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
 
 Clear-Host
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "   killSlop v0.0.3 // PREPARATION" -ForegroundColor Cyan
+Write-Host "   killSlop v0.0.1 // PREPARATION" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
 

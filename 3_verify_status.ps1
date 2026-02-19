@@ -13,10 +13,13 @@
     VERSION: 0.0.1
 #>
 
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
+param()
+
 $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "   killSlop v0.0.3 // VERIFICATION" -ForegroundColor Cyan
+Write-Host "   killSlop v0.0.1 // VERIFICATION" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -48,9 +51,6 @@ foreach ($SvcName in $Services) {
     
     if ($Svc) {
         $RegStart = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$SvcName" -ErrorAction SilentlyContinue).Start
-        
-        $StateColor = if ($Svc.Status -eq 'Running') { "Red" } else { "Green" }
-        $ConfigColor = if ($RegStart -eq 4) { "Green" } else { "Red" }
         
         $Str = "   {0,-15} | STATE: {1,-10} | START_TYPE: {2}" -f $SvcName, $Svc.Status, $RegStart
         

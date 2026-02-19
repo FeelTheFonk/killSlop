@@ -21,6 +21,7 @@ $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
 # --- LOGGING SUBSYSTEM ---
 function Write-Log {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
     param ( [string]$Message, [string]$Level = "INFO", [string]$Color = "Gray" )
     $Time = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $Line = "[$Time] [$Level] $Message"
@@ -59,7 +60,7 @@ function Grant-RegistryAccess {
 # --- MAIN EXECUTION BLOCK ---
 try {
     Start-Transcript -Path $LogPath -Append | Out-Null
-    Write-Log "=== killSlop v0.0.3 INITIATED ===" "INIT" "Magenta"
+    Write-Log "=== killSlop v0.0.1 INITIATED ===" "INIT" "Magenta"
 
     # 1. SERVICE CONFIGURATION
     Write-Log "Configuring Services..." "PROC" "Cyan"
