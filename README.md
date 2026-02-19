@@ -63,6 +63,18 @@ sequenceDiagram
     Run `3_verify_status.ps1` to inspect service states and logs.
     Logs are stored at `C:\DefenderKill\killSlop_log.txt`.
 
+## Operational Impact (SOTA Analysis)
+
+Disabling kernel-level security modules has distinct side effects. This protocol is designed to minimize instability, but users must be aware of the following 2026-era consequences:
+
+| Component | Status | Impact Analysis |
+| :--- | :--- | :--- |
+| **Windows Update** | ⚠️ Partial | Core OS updates will continue. Updates specific to Defender (Intelligence/Engine) will fail. |
+| **Microsoft Store** | ✅ Stable | Store Apps generally function. Some banking/enterprise apps requiring "Device Health Attestation" may refuse to run. |
+| **Network Stack** | ⚡ Optimized | `WdNisDrv` (Network Inspection) removal eliminates packet inspection overhead. No known stack breakage in 24H2. |
+| **System Stability** | ⚠️ Low Risk | Removing `WdFilter.sys` prevents minifilter conflicts (`sprotect.sys`), potentially *reducing* BSODs on specific NVMe hardware. |
+| **Security Center** | ❌ Disabled | The UI will report "Unknown" or be inaccessible. Notifications will cease. |
+
 ## Disclaimer
 
 This software disables critical security features. It is intended for specialized environments (e.g., benchmark rigs, offline compute nodes) where background interference must be eliminated. Use at your own risk.
