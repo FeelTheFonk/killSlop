@@ -1,79 +1,63 @@
 # killSlop
 
-**Version:** 1.0.0-SOTA (Unified Climax)
-**Vector:** Fileless In-Memory
-**Platform:** Windows 11 24H2
+**Version:** 1.0.1
+**Vecteur d'Exécution:** Fileless In-Memory (Safe Mode Stager)
+**Plateforme Cible:** Windows 11 (24H2)
 
-## 1. Objectif & Cadre d'Opération
+## 1. Philosophie et Périmètre
 
-**killSlop** est une suite d'automatisation offensive SOTA (State of The Art) 2026. Son objectif exclusif est l'annihilation simultanée, furtive et irréversible des **services de sécurité système (Defender/EDR)** et de l'**infrastructure de Télémétrie/I-O Polling (ETW, WaaSMedic, SysMain)**. 
+`killSlop` est un outil d'administration asynchrone conçu pour la neutralisation ciblée et irréversible des composants de télémétrie, des routines d'E/S en arrière-plan, et des services de sécurité embarqués (Defender/EDR). 
 
-Conçue sous le paradigme d'empreinte zéro (Zero-Drop footprint), l'architecture opère en mémoire vive (RAM) de manière isolée. L'exécution s'articule autour d'un vecteur d'injection registre (Safe Boot) et d'un mécanisme de "staging" RunOnce extrêmement compressé, permettant un contournement Kernel (Kernel-Bypass) sans générer d'artéfacts forensiques.
+L'architecture repose sur un principe d'**empreinte nulle (Zero-Drop)** :
+*   Aucun binaire n'est déposé sur le disque de la machine cible.
+*   L'intégralité du code asymétrique s'exécute en mémoire vive (RAM) via un flux compressé (`DeflateStream`).
+*   L'élévation de privilèges (Acquisition de `SeTakeOwnershipPrivilege`) se fait via réflexion C# `.NET` native, s'affranchissant des utilitaires tiers.
+*   L'opération nettoie asynchroniquement ses propres clés de registre d'injection avant de restituer l'environnement standard.
 
-## 2. Architecture & Vecteur d'Exécution
+Ce projet s'adresse à des environnements maîtrisés (postes dédiés à la performance stricte, machines d'analyse isolées) où les cycles CPU, l'IOPS, et la bande passante réseau ne doivent subir aucune interférence de l'OS.
 
-Le flux opérationnel exige un redémarrage asynchrone pour contourner les verrous de protection (Tamper Protection) via l'environnement Safe Mode.
+## 2. Architecture Technique
 
-```mermaid
-stateDiagram-v2
-    direction LR
+La séquence d'exécution exploite le passage par le **Safe Mode** pour contourner le verrouillage (`Tamper Protection`) des ruches de registre et des ACL des services Windows.
 
-    classDef dark fill:#121212,stroke:#424242,stroke-width:2px,color:#e0e0e0
-    classDef inject fill:#0d47a1,stroke:#1565c0,stroke-width:2px,color:#fff
-    classDef mem fill:#b71c1c,stroke:#d32f2f,stroke-width:2px,color:#fff
+1.  **Phase d'Injection Normale (`i.ps1`) :** Le script d'injection requiert les privilèges Administrateur. Il encode la charge utile dans la clé `InstallDate` de Windows Update (`HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WindowsUpdate`). Il inscrit ensuite une tâche de lancement asynchrone (RunOnce) ciblant l'exécutable PowerShell en mode non-interactif et masqué.
+2.  **Modification d'Amorçage :** Le `bcdedit` est configuré pour forcer le prochain redémarrage en `safeboot network`. 
+3.  **Phase Asynchrone (Safe Mode Logon) :** Le Stager s'exécute. Il désérialise, décompresse, et exécute en mémoire le flux contenant les instructions d'ablation.
+4.  **Éradication & Restitution :** Les services ciblés sont passés en statut `4` (Désactivé), les tâches planifiées sont annihilées. L'injecteur nettoie la clé `InstallDate`, supprime l'indicateur `safeboot` du BCD, et déclenche le redémarrage final vers l'environnement standard.
 
-    state "Normal Mode (Initial)" as NM1
-    state "Registry Injection" as RegInj
-    state "Safe Mode (Boot)" as SM_Boot
-    state "RunOnce Stager" as SM_Stager
-    state "In-Memory Payload" as SM_Mem
-    state "Normal Mode (Post-Op)" as NM2
+## 3. Guide d'Exécution (How-To)
 
-    NM1 --> RegInj : i.ps1
-    RegInj --> SM_Boot : Reboot (Safeboot BCD)
-    SM_Boot --> SM_Stager : OS Logon Trigger
-    SM_Stager --> SM_Mem : IEX (Memory Stream)
-    SM_Mem --> NM2 : Registry Burn & Reboot
+L'exécution doit être infaillible. Toute intervention humaine ou popup est proscrite durant la séquence.
 
-    class NM1,NM2,SM_Boot dark
-    class RegInj inject
-    class SM_Stager,SM_Mem mem
-```
+### Prérequis
+*   Tamper Protection : **Désactivé** (Nécessaire pour l'injection initiale).
+*   Privilèges : **Administrateur local** exigé.
 
-## 3. Composants SOTA & Furtivité
+### Déploiement
 
-L'architecture legacy fragmentée a été abolie. Le repo se concentre sur deux composants ultra-densifiés :
+Un point d'exécution unique, stable et pré-configuré est fourni via le script batch `run.bat`.
 
-### 3.1 `i.ps1` (L'Injecteur)
-Opère sous privilèges administratifs stricts (`IsInRole(544)`).
-Charge un flux `DeflateStream` Base64 monolithique (Defender + Silence) dans la ruche système (Propriété de camouflage: `InstallDate`). Modifie le BCD et reboot.
+1.  Lancez le fichier `run.bat` d'un simple clic (ou depuis un terminal `cmd` / `powershell`).
+2.  Le script gère dynamiquement l'élévation de privilèges UAC si nécessaire.
+3.  Le script applique un `ExecutionPolicy Bypass` à l'instance pour éviter tout blocage pré-SafeMode.
+4.  Il transfère le contrôle à l'injecteur silencié (`i.ps1 -Confirm`).
+5.  Aucune interaction n'est requise de votre part. La machine redémarrera d'elle-même en Safe Mode, exécutera le nettoyage en millisecondes de manière invisible, puis redémarrera une seconde fois en mode normal.
 
-### 3.2 Le Payload In-Memory (`src/p.ps1`)
-Noyau opérationnel exclusif en RAM. Ses macros-actions :
-1.  **Abus de Privilèges :** Capture du `SeTakeOwnershipPrivilege` (NT AUTHORITY) via réflexion C#.
-2.  **Neutralisation EDR/AV :** Destruction de `WinDefend`, `WdFilter`, `Sense`, `SgrmBroker`, etc.
-3.  **Ablation Télémétrie & I/O :** Neutralisation de `DiagTrack`, `WaaSMedicSvc`, `SysMain`.
-4.  **Extinction ETW :** Shutdown des Autologgers (`AutoLogger-Diagtrack-Listener`, `LwtNetLog`, etc).
-5.  **Excision Forensique (Burn-After-Reading) :** Autodestruction de la clé `InstallDate` encodée et du profil SafeBoot BCD.
+### Audit Post-Opération
 
-### 3.3 `c.ps1` (Silent Auditor)
-Séquence booléenne validant 19 vecteurs d'attaque. Sortie asymptotique sans écho. (`Exit 0` succès, `Exit 1` échec).
+Pour valider cliniquement le succès du déploiement sans générer de logs verbeux, exécutez le senseur booléen :
 
-## 4. Déploiement
-
-Prérequis stricts et rigides, toute omission provoque la terminaison prématurée du processus.
-
-*   Droits requis: `Administrateur`.
-*   Condition initiale: `Tamper Protection: Disabled`.
-
-Exécution exigée avec commutateur de confirmation:
 ```powershell
-.\i.ps1 -Confirm
+powershell -ExecutionPolicy Bypass -File .\c.ps1
 ```
 
-## 5. Posture de Sécurité & Empreinte
+*   Une exécution sans aucune sortie et un `Exit Code 0` (`$LASTEXITCODE` sous PowerShell) confirme que l'intégralité des 19 vecteurs cibles (Services, Autologgers WMI, Télémétrie, GPO Applicative) est neutralisée.
 
-Système de "Zero-Drop", abandonnant activement toutes notions de logs ou traces.
-*   **Disque:** `0` octet additionnel généré post-déploiement.
-*   **Registre:** Modification transitoire (O/1). Auto-effacement total validé en RAM.
-*   **Linter Compliance:** Validité totale sous `Invoke-ScriptAnalyzer` (`Severity 0`).
+## 4. Maintenance / Modifications du Payload
+
+Le code source d'ablation réside dans `src/p.ps1`. Il n'est pas utilisé directement lors de l'attaque. En cas de modification (ajout d'un service cible, retrait d'un ETW), la mécanique suivante s'impose :
+
+1.  Mettez à jour `src/p.ps1`.
+2.  Compressez et encodez son contenu : Le flux est minifié (suppression des retours charriots), converti en `MemoryStream`, compressé via `DeflateStream`, puis encodé en Base64.
+3.  La chaîne Base64 résultante (`src/e.bin`) doit être assignée à la variable `$b` dans `i.ps1`.
+4.  Privilégiez toujours l'usage du `$ErrorActionPreference = 'SilentlyContinue'` (minifié en `$E`) pour garantir un `No-Block` lors de l'exécution RunOnce.
