@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     killSlop // VERIFICATION
-    
+
 .DESCRIPTION
     Post-execution status check (SOTA).
     1. Deep Log Audit (Heuristic Analysis).
@@ -12,6 +12,9 @@
     PROJECT: killSlop
     VERSION: 0.0.1
 #>
+
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "", Justification="Verification tool intended for console output")]
+param()
 
 $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
@@ -24,17 +27,17 @@ Write-Host ""
 if (Test-Path $LogPath) {
     Write-Host "[INFO] ANALYZING LOG INTEGRITY..." -ForegroundColor Gray
     $LogContent = Get-Content $LogPath
-    
+
     $Errors = $LogContent | Where-Object { $_ -match "ERROR" -or $_ -match "FAIL" -or $_ -match "FATAL" -or $_ -match "Exception" }
     $Success = $LogContent | Where-Object { $_ -match "Service Disabled" -or $_ -match "Policy Applied" }
-    
+
     if ($Errors) {
         Write-Host "[WARN] ANOMALIES DETECTED IN LOGS:" -ForegroundColor Yellow
         $Errors | ForEach-Object { Write-Host "   $_" -ForegroundColor Red }
     } else {
         Write-Host "[PASS] LOGS CLEAN (No recorded errors)." -ForegroundColor Green
     }
-    
+
     Write-Host "   - Operations Logged: $($LogContent.Count)" -ForegroundColor Gray
     Write-Host "   - Sucessful Actions: $($Success.Count)" -ForegroundColor Gray
 } else {
@@ -72,11 +75,11 @@ $Services = @(
 
 foreach ($SvcName in $Services) {
     $Svc = Get-Service -Name $SvcName -ErrorAction SilentlyContinue
-    
+
     $StatusStr = "MISSING"
     $StartType = "UNKNOWN"
     $Color = "DarkGray"
-    
+
     if ($Svc) {
         try {
             # Direct Registry Query for Truth regarding Start Type
@@ -85,16 +88,16 @@ foreach ($SvcName in $Services) {
         } catch {
             $StartType = "ACCESS_DENIED/MISSING"
         }
-        
+
         $StatusStr = $Svc.Status
-        
+
         if ($Svc.Status -eq 'Running' -or ($RegStart -ne 4 -and $null -ne $RegStart)) {
             $Color = "Red" # Failed state
         } elseif ($RegStart -eq 4) {
             $Color = "Green" # Compliance
         }
     }
-    
+
     Write-Host ("   {0,-20} | STATE: {1,-10} | START_TYPE: {2}" -f $SvcName, $StatusStr, $StartType) -ForegroundColor $Color
 }
 

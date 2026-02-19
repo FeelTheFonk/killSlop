@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     killSlop // PAYLOAD
-    
+
 .DESCRIPTION
     Executed within Safe Mode environment.
     1. Seizes ownership of system-protected registry keys (ACL Bypass).
@@ -9,7 +9,7 @@
     3. Disables scheduled maintenance tasks.
     4. Injects Group Policy overrides.
     5. Restores normal boot configuration.
-    
+
 .NOTES
     PROJECT: killSlop
     VERSION: 0.0.1
@@ -20,6 +20,7 @@ $ErrorActionPreference = "SilentlyContinue"
 $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
 # --- LOGGING SUBSYSTEM ---
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "", Justification="Required for SafeMode console feedback")]
 function Write-KillSlopLog {
     param ( [string]$Message, [string]$Level = "INFO", [string]$Color = "Gray" )
     $Time = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -32,7 +33,7 @@ function Write-KillSlopLog {
 function Grant-RegistryAccess {
     param ( [string]$KeyPath )
     if (!(Test-Path $KeyPath)) { return }
-    
+
     Write-KillSlopLog "Adjusting ACLs for: $KeyPath" "ACL" "DarkGray"
     try {
         # Get Localized Administrators Group Name via SID (S-1-5-32-544)
@@ -42,11 +43,11 @@ function Grant-RegistryAccess {
         # Open Key with TakeOwnership Right
         $RegKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($KeyPath.Replace("HKLM:\", ""), [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::TakeOwnership)
         $ACL = $RegKey.GetAccessControl()
-        
+
         # Take Ownership
         $ACL.SetOwner($Admin)
         $RegKey.SetAccessControl($ACL)
-        
+
         # Grant Full Control
         $RegKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($KeyPath.Replace("HKLM:\", ""), [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::ChangePermissions)
         $ACL = $RegKey.GetAccessControl()
@@ -62,7 +63,7 @@ function Grant-RegistryAccess {
 # --- MAIN EXECUTION BLOCK ---
 try {
     Start-Transcript -Path $LogPath -Append | Out-Null
-    
+
     # 0. PRIVILEGE ESCALATION
     $Definition = @"
     using System;
@@ -88,7 +89,7 @@ try {
         public static bool EnablePrivilege(string privilege) {
             try {
                 bool retVal;
-                TokPriv1Luid tp;
+                TokPriv1Luid tp = new TokPriv1Luid();
                 IntPtr hproc = GetCurrentProcess();
                 IntPtr htok = IntPtr.Zero;
                 retVal = OpenProcessToken(hproc, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, ref htok);
@@ -98,13 +99,23 @@ try {
                 retVal = LookupPrivilegeValue(null, privilege, ref tp.Luid);
                 retVal = AdjustTokenPrivileges(htok, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
                 return retVal;
-            } catch (Exception ex) {
+            } catch (Exception) {
                 return false;
             }
         }
     }
 "@
-    Add-Type -TypeDefinition $Definition -PassThru | Out-Null
+    try {
+        Add-Type -TypeDefinition $Definition -PassThru | Out-Null
+    }
+    catch {
+        $LoaderErrors = $_.Exception.LoaderExceptions | ForEach-Object { $_.Message }
+        Write-KillSlopLog "COMPILATION ERROR: $_" "FATAL" "Red"
+        if ($LoaderErrors) {
+            Write-KillSlopLog "Loader Details: $LoaderErrors" "FATAL" "Red"
+        }
+        throw $_
+    }
     [TokenManipulator]::EnablePrivilege("SeTakeOwnershipPrivilege") | Out-Null
     [TokenManipulator]::EnablePrivilege("SeRestorePrivilege") | Out-Null
     Write-KillSlopLog "Privileges Escalated (SeTakeOwnership, SeRestore)" "INIT" "Magenta"
@@ -155,8 +166,8 @@ try {
         "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection",
         "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet"
     )
-    foreach ($Path in $PolicyPaths) { 
-        if (!(Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null } 
+    foreach ($Path in $PolicyPaths) {
+        if (!(Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null }
     }
 
     $Overrides = @{
@@ -186,7 +197,7 @@ finally {
     # 4. RESTORATION & EGRESS
     Write-KillSlopLog "Restoring Boot Configuration..." "PROC" "Cyan"
     & bcdedit.exe /deletevalue "{current}" safeboot
-    
+
     Write-KillSlopLog "=== PROTOCOL COMPLETE. REBOOTING. ===" "EXIT" "Magenta"
     Stop-Transcript | Out-Null
     Start-Sleep -Seconds 3

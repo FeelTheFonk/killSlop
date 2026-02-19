@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     killSlop // PREPARATION
-    
+
 .DESCRIPTION
     System preparation sequence.
     1. Validates Administrative Privileges.
