@@ -1,7 +1,2 @@
-# PowerShell
-*.zip
-release_pkg/
-killSlop_log.txt
-
 # Editor
 .vscode/
