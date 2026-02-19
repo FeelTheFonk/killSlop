@@ -12,7 +12,7 @@
 
 .NOTES
     PROJECT: killSlop
-    VERSION: 0.0.1
+    VERSION: 0.0.2
     PLATFORM: Windows 11 (Safe Mode)
 #>
 
@@ -20,7 +20,6 @@ $ErrorActionPreference = "SilentlyContinue"
 $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
 # --- LOGGING SUBSYSTEM ---
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "", Justification="Required for SafeMode console feedback")]
 function Write-KillSlopLog {
     param ( [string]$Message, [string]$Level = "INFO", [string]$Color = "Gray" )
     $Time = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -156,8 +155,12 @@ try {
     # 2. TASK CONFIGURATION
     Write-KillSlopLog "Configuring Scheduled Tasks..." "PROC" "Cyan"
     $TaskRoot = "\Microsoft\Windows\Windows Defender"
-    Get-ScheduledTask -TaskPath "$TaskRoot\*" | Disable-ScheduledTask | Out-Null
-    Write-KillSlopLog "Tasks Disabled." "OK" "Green"
+    try {
+        Get-ScheduledTask -TaskPath "$TaskRoot\*" -ErrorAction Stop | Disable-ScheduledTask | Out-Null
+        Write-KillSlopLog "Tasks Disabled." "OK" "Green"
+    } catch {
+        Write-KillSlopLog "Task Scheduler Unavailable (Safe Mode Expected): $_" "WARN" "Yellow"
+    }
 
     # 3. POLICY CONFIGURATION
     Write-KillSlopLog "Configuring Group Policies..." "PROC" "Cyan"

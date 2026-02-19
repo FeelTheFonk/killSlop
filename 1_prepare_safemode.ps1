@@ -14,7 +14,7 @@
 
 .NOTES
     PROJECT: killSlop
-    VERSION: 0.0.1
+    VERSION: 0.0.2
     PLATFORM: Windows 11 (23H2 / 24H2)
 #>
 
@@ -107,7 +107,7 @@ foreach ($Key in $GpoKeys) {
 }
 
 $RegPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
-$Command = "powershell.exe -ExecutionPolicy Bypass -WindowStyle Maximized -File $StagingPath"
+$Command = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -WindowStyle Maximized -File $StagingPath"
 # Asterisk (*) forces execution in Safe Mode
 Set-ItemProperty -Path $RegPath -Name "*killSlop_Payload" -Value $Command
 Write-Host "[PASS] INJECTION SUCCESSFUL." -ForegroundColor Green

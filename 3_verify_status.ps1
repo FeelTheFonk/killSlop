@@ -10,10 +10,9 @@
 
 .NOTES
     PROJECT: killSlop
-    VERSION: 0.0.1
+    VERSION: 0.0.2
 #>
 
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "", Justification="Verification tool intended for console output")]
 param()
 
 $LogPath = "C:\DefenderKill\killSlop_log.txt"
