@@ -88,7 +88,7 @@ foreach ($SvcName in $Services) {
         
         $StatusStr = $Svc.Status
         
-        if ($Svc.Status -eq 'Running' -or ($RegStart -ne 4 -and $RegStart -ne $null)) {
+        if ($Svc.Status -eq 'Running' -or ($RegStart -ne 4 -and $null -ne $RegStart)) {
             $Color = "Red" # Failed state
         } elseif ($RegStart -eq 4) {
             $Color = "Green" # Compliance
