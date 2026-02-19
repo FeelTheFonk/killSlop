@@ -38,6 +38,7 @@ jobs:
           cp 2_kill_defender.ps1 release_pkg/
           cp 3_verify_status.ps1 release_pkg/
           cp README.md release_pkg/
+          cp PSScriptAnalyzerSettings.psd1 release_pkg/
           
           # Zip it up cleanly
           cd release_pkg
@@ -46,7 +47,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.tag_version.outputs.new_tag # Only run if a new tag was created
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag_version.outputs.new_tag }}
           name: Release ${{ steps.tag_version.outputs.new_tag }}

@@ -1,2 +1,13 @@
-# Editor
+# Editor & IDE
 .vscode/
+
+# Claude Code local settings (machine-specific)
+.claude/
+
+# Artifacts & Staging (never commit operational artefacts)
+*.log
+*.zip
+
+# Windows artifacts
+Thumbs.db
+Desktop.ini

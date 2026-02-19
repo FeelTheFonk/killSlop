@@ -18,8 +18,8 @@ jobs:
         shell: pwsh
         run: |
           # Enforce strict rules: Errors and Warnings must be zero.
-          # Exclude PSAvoidUsingWriteHost as this is an interactive CLI tool.
-          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning -ExcludeRule PSAvoidUsingWriteHost
+          # Exclusions managed via PSScriptAnalyzerSettings.psd1 (PSAvoidUsingWriteHost, PSAvoidUsingPositionalParameters).
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning -Settings ./PSScriptAnalyzerSettings.psd1
           if ($results) {
               Write-Error "PSScriptAnalyzer found issues:"
               $results | Format-Table -AutoSize
