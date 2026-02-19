@@ -21,10 +21,10 @@ stateDiagram-v2
     state "Safe Mode (Networking)" as SM
     state "Normal Mode (Post-Op)" as NM2
     
-    NM1 --> Reboot_1: 1_prepare_safemode.ps1
-    Reboot_1 --> SM: BCD: safeboot network
-    SM --> Reboot_2: 2_kill_defender.ps1 (RunOnce)
-    Reboot_2 --> NM2: BCD: safeboot removed
+    NM1 --> Reboot_1: "1_prepare_safemode.ps1"
+    Reboot_1 --> SM: "BCD: safeboot network"
+    SM --> Reboot_2: "2_kill_defender.ps1 (RunOnce)"
+    Reboot_2 --> NM2: "BCD: safeboot removed"
     
     note right of NM1
         - Admin Check
@@ -55,22 +55,22 @@ graph TD
     classDef critical fill:#ffebee,stroke:#c62828,stroke-width:2px;
     classDef system fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
 
-    Start([Start: 1_prepare_safemode.ps1]) --> AdminCheck{Admin Privileges?}
+    Start(["Start: 1_prepare_safemode.ps1"]) --> AdminCheck{"Admin Privileges?"}
     AdminCheck -- No --> Exit1[Exit: Fatal Error]:::critical
-    AdminCheck -- Yes --> SafetyCheck{24H2 Safety Interlock<br/>(User Confirmation)}:::check
+    AdminCheck -- Yes --> SafetyCheck{"24H2 Safety Interlock<br/>(User Confirmation)"}:::check
 
     SafetyCheck -- "No Password / Cancel" --> Exit2[Exit: Safety Abort]:::critical
-    SafetyCheck -- "Confirmed" --> TamperCheck{Tamper Protection<br/>Disabled?}:::check
+    SafetyCheck -- "Confirmed" --> TamperCheck{"Tamper Protection<br/>Disabled?"}:::check
 
     TamperCheck -- No --> Exit3[Exit: Manual Action Req]:::critical
-    TamperCheck -- Yes --> RestorePoint[Create Restore Point<br/>Checkpoint-Computer]:::action
+    TamperCheck -- Yes --> RestorePoint["Create Restore Point<br/>Checkpoint-Computer"]:::action
 
-    RestorePoint --> StagePayload[Stage Payload<br/>C:\DefenderKill\2_kill_defender.ps1]:::action
-    StagePayload --> GPOPre[Remove GPO Blockers<br/>DisableRunOnce]:::action
-    GPOPre --> InjectRunOnce[Inject RunOnce Trigger<br/>Key: *killSlop_Payload<br/>Value: Powershell -File ...]:::critical
+    RestorePoint --> StagePayload["Stage Payload<br/>C:\DefenderKill\2_kill_defender.ps1"]:::action
+    StagePayload --> GPOPre["Remove GPO Blockers<br/>DisableRunOnce"]:::action
+    GPOPre --> InjectRunOnce["Inject RunOnce Trigger<br/>Key: *killSlop_Payload<br/>Value: Powershell -File ..."]:::critical
 
-    InjectRunOnce --> SetSafeBoot[BCD Set Safeboot Network]:::system
-    SetSafeBoot --> Restart[System Restart]:::system
+    InjectRunOnce --> SetSafeBoot["BCD Set Safeboot Network"]:::system
+    SetSafeBoot --> Restart["System Restart"]:::system
 ```
 
 ### 3. Phase 2: Neutralization (The Kill)
@@ -84,28 +84,28 @@ graph TD
     classDef config fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
     classDef exit fill:#263238,stroke:#eceff1,stroke-width:2px,color:#fff;
 
-    Start([Start: RunOnce Auto-Run]):::exit --> LogStart[Init Logging<br/>C:\DefenderKill\log.txt]:::config
-    LogStart --> ServiceLoop[[Loop: Target Services]]:::loop
+    Start(["Start: RunOnce Auto-Run"]):::exit --> LogStart["Init Logging<br/>C:\DefenderKill\log.txt"]:::config
+    LogStart --> ServiceLoop[["Loop: Target Services"]]:::loop
     
     subgraph Service Neutralization
-        ServiceLoop --> ACL[Grant-RegistryAccess<br/>TakeOwnership + FullControl]:::attack
-        ACL --> DisableSvc[Set Start = 4 (Disabled)]:::attack
-        DisableSvc --> NextSvc{More Services?}
+        ServiceLoop --> ACL["Grant-RegistryAccess<br/>TakeOwnership + FullControl"]:::attack
+        ACL --> DisableSvc["Set Start = 4 (Disabled)"]:::attack
+        DisableSvc --> NextSvc{"More Services?"}
         NextSvc -- Yes --> ServiceLoop
     end
     
-    NextSvc -- No --> TaskKill[Disable Scheduled Tasks<br/>\Microsoft\Windows\Windows Defender\*]:::attack
+    NextSvc -- No --> TaskKill["Disable Scheduled Tasks<br/>\Microsoft\Windows\Windows Defender\*"]:::attack
     
-    TaskKill --> GPOInject[[Inject Group Policies]]:::config
+    TaskKill --> GPOInject[["Inject Group Policies"]]:::config
     
     subgraph GPO Overrides
-        GPOInject --> DefPol[DisableAntiSpyware = 1]
-        GPOInject --> RTPol[DisableRealtimeMonitoring = 1]
-        GPOInject --> SpyNet[SubmitSamplesConsent = 2]
+        GPOInject --> DefPol["DisableAntiSpyware = 1"]
+        GPOInject --> RTPol["DisableRealtimeMonitoring = 1"]
+        GPOInject --> SpyNet["SubmitSamplesConsent = 2"]
     end
     
-    SpyNet --> CleanBoot[BCD Delete Safeboot]:::config
-    CleanBoot --> Reboot[Restart System]:::exit
+    SpyNet --> CleanBoot["BCD Delete Safeboot"]:::config
+    CleanBoot --> Reboot["Restart System"]:::exit
 ```
 
 ## Prerequisites
