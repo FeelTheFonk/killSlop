@@ -32,7 +32,7 @@ if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
 
 Clear-Host
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "   killSlop v0.0.1 // PREPARATION" -ForegroundColor Cyan
+Write-Host "   killSlop v0.0.3 // PREPARATION" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
 

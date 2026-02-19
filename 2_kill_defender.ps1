@@ -59,7 +59,7 @@ function Grant-RegistryAccess {
 # --- MAIN EXECUTION BLOCK ---
 try {
     Start-Transcript -Path $LogPath -Append | Out-Null
-    Write-Log "=== killSlop v0.0.1 INITIATED ===" "INIT" "Magenta"
+    Write-Log "=== killSlop v0.0.3 INITIATED ===" "INIT" "Magenta"
 
     # 1. SERVICE CONFIGURATION
     Write-Log "Configuring Services..." "PROC" "Cyan"

@@ -16,7 +16,7 @@
 $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "   killSlop v0.0.1 // VERIFICATION" -ForegroundColor Cyan
+Write-Host "   killSlop v0.0.3 // VERIFICATION" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -60,7 +60,7 @@ foreach ($SvcName in $Services) {
             Write-Host $Str -ForegroundColor Green
         }
     } else {
-        Write-Host "   {0,-15} | NOT INSTALLED" -f $SvcName -ForegroundColor DarkGray
+        Write-Host ("   {0,-15} | NOT INSTALLED" -f $SvcName) -ForegroundColor DarkGray
     }
 }
 
