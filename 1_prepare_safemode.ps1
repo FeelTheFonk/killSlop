@@ -14,7 +14,7 @@
 
 .NOTES
     PROJECT: killSlop
-    VERSION: 0.0.3
+    VERSION: 0.1.1
     PLATFORM: Windows 11 24H2
 #>
 
@@ -32,7 +32,7 @@ if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
 
 Clear-Host
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "   killSlop v0.0.3 // PREPARATION" -ForegroundColor Cyan
+Write-Host "   killSlop v0.1.1 // PREPARATION" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -78,7 +78,7 @@ catch {
 # 3. SYSTEM SNAPSHOT
 Write-Host "[INFO] GENERATING RESTORE POINT..." -ForegroundColor Gray
 try {
-    Checkpoint-Computer -Description "Checkpoint_killSlop_v0.0.3" -RestorePointType "MODIFY_SETTINGS"
+    Checkpoint-Computer -Description "Checkpoint_killSlop_v0.1.1" -RestorePointType "MODIFY_SETTINGS"
     Write-Host "[PASS] RESTORE POINT CREATED." -ForegroundColor Green
 }
 catch {

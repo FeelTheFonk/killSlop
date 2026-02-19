@@ -1,6 +1,6 @@
 # killSlop
 
-![Version](https://img.shields.io/badge/Version-0.0.3-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-0.1.1-blue?style=flat-square)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2011%2024H2-0078D4?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-gray?style=flat-square)
 
@@ -123,7 +123,6 @@ graph TD
 1.  **Tamper Protection Disabled:** Must be turned off manually in *Windows Security > Virus & threat protection > Manage settings*.
 2.  **Microsoft Account Password:** Required for Safe Mode login if Windows Hello PIN is unavailable (Windows 11 24H2 constraint).
 3.  **Administrator Privileges:** Required for all scripts.
-4.  **Local Development (Lint):** `PSScriptAnalyzerSettings.psd1` must be present at the repo root. Run: `Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning -Settings ./PSScriptAnalyzerSettings.psd1`
 
 ## Usage
 

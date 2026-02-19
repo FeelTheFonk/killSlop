@@ -33,7 +33,7 @@ jobs:
         if: steps.tag_version.outputs.new_tag # Only run if a new tag was created
         run: |
           mkdir release_pkg
-          # Select strictly only the production files
+          # Production files only — CLAUDE.md and .gitignore are intentionally excluded.
           cp 1_prepare_safemode.ps1 release_pkg/
           cp 2_kill_defender.ps1 release_pkg/
           cp 3_verify_status.ps1 release_pkg/

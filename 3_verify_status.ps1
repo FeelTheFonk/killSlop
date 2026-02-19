@@ -10,13 +10,13 @@
 
 .NOTES
     PROJECT: killSlop
-    VERSION: 0.0.3
+    VERSION: 0.1.1
 #>
 
 $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "   killSlop v0.0.3 // VERIFICATION (DEEP DIVE)" -ForegroundColor Cyan
+Write-Host "   killSlop v0.1.1 // VERIFICATION (DEEP DIVE)" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
 
