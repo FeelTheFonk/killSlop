@@ -16,32 +16,42 @@ High-level view of the system state transitions.
 ```mermaid
 stateDiagram-v2
     direction LR
-    
+
+    classDef dark fill:#212121,stroke:#666,stroke-width:2px,color:#fff
+    classDef norm fill:#0d47a1,stroke:#64b5f6,stroke-width:2px,color:#fff
+    classDef safe fill:#b71c1c,stroke:#ff5252,stroke-width:2px,color:#fff
+
     state "Normal Mode (Initial)" as NM1
+    state "Reboot (Safe Boot)" as Reboot_1
     state "Safe Mode (Networking)" as SM
+    state "Reboot (Normal)" as Reboot_2
     state "Normal Mode (Post-Op)" as NM2
-    
-    NM1 --> Reboot_1: "1_prepare_safemode.ps1"
-    Reboot_1 --> SM: "BCD: safeboot network"
-    SM --> Reboot_2: "2_kill_defender.ps1 (RunOnce)"
-    Reboot_2 --> NM2: "BCD: safeboot removed"
-    
+
+    NM1 --> Reboot_1 : 1_prepare_safemode.ps1
+    Reboot_1 --> SM : BCD safeboot network
+    SM --> Reboot_2 : 2_kill_defender.ps1 (RunOnce)
+    Reboot_2 --> NM2 : BCD safeboot removed
+
     note right of NM1
-        - Admin Check
-        - Restore Point
-        - Payload Staging
+        * Admin Check
+        * Restore Point
+        * Payload Staging
     end note
-    
+
     note right of SM
-        - ACL Takeover
-        - Service Disable
-        - GPO Injection
+        * ACL Takeover
+        * Service Disable
+        * GPO Injection
     end note
-    
+
     note right of NM2
-        - User Verification
-        - Artifact Cleanup
+        * User Verification
+        * Artifact Cleanup
     end note
+
+    class NM1,NM2 norm
+    class SM safe
+    class Reboot_1,Reboot_2 dark
 ```
 
 ### 2. Phase 1: Preparation Vector
@@ -49,11 +59,11 @@ Detailed logic flow of `1_prepare_safemode.ps1`.
 
 ```mermaid
 graph TD
-    %% Styling
-    classDef check fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-    classDef action fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef critical fill:#ffebee,stroke:#c62828,stroke-width:2px;
-    classDef system fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+    %% Styling - Dark Mode SOTA
+    classDef check fill:#004d40,stroke:#00e5ff,stroke-width:2px,color:#fff;
+    classDef action fill:#1b5e20,stroke:#69f0ae,stroke-width:2px,color:#fff;
+    classDef critical fill:#b71c1c,stroke:#ff8a80,stroke-width:2px,color:#fff;
+    classDef system fill:#e65100,stroke:#ffcc80,stroke-width:2px,color:#fff;
 
     Start(["Start: 1_prepare_safemode.ps1"]) --> AdminCheck{"Admin Privileges?"}
     AdminCheck -- No --> Exit1[Exit: Fatal Error]:::critical
@@ -78,11 +88,11 @@ Detailed logic flow of `2_kill_defender.ps1` executing in Safe Mode.
 
 ```mermaid
 graph TD
-    %% Styling
-    classDef loop fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
-    classDef attack fill:#ffebee,stroke:#c62828,stroke-width:2px;
-    classDef config fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef exit fill:#263238,stroke:#eceff1,stroke-width:2px,color:#fff;
+    %% Styling - Dark Mode SOTA
+    classDef loop fill:#4a148c,stroke:#ea80fc,stroke-width:2px,stroke-dasharray: 5 5,color:#fff;
+    classDef attack fill:#b71c1c,stroke:#ff5252,stroke-width:2px,color:#fff;
+    classDef config fill:#0d47a1,stroke:#82b1ff,stroke-width:2px,color:#fff;
+    classDef exit fill:#212121,stroke:#cfd8dc,stroke-width:2px,color:#fff;
 
     Start(["Start: RunOnce Auto-Run"]):::exit --> LogStart["Init Logging<br/>C:\DefenderKill\log.txt"]:::config
     LogStart --> ServiceLoop[["Loop: Target Services"]]:::loop

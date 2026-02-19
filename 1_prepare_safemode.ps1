@@ -41,11 +41,22 @@ Write-Host "[WAIT] INITIATING SAFETY INTERLOCK (WINDOWS 11 24H2)..." -Foreground
 Write-Host "NOTICE: Windows 11 24H2 may disable Hello PIN in Safe Mode."
 Write-Host "REQ-1: Valid Password for Microsoft/Local Account (PIN IS NOT SUFFICIENT)."
 Write-Host "REQ-2: Tamper Protection DISABLED via Windows Security UI."
+Write-Host "REQ-3: BITLOCKER RECOVERY KEY (If BitLocker is active, Safe Mode may trigger it)." -ForegroundColor Red
 Write-Host ""
 $UserAck = Read-Host "TYPE 'I HAVE MY PASSWORD' TO CONFIRM PRE-REQUISITES"
 
 if ($UserAck -ne "I HAVE MY PASSWORD") {
     Write-Warning "ABORTED: Safety interlock triggered. Code 0xUSER_CANCEL."
+    Exit
+}
+
+# 1.1 SID RESOLUTION CHECK (Pre-Flight)
+try {
+    $TestSID = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
+    $TestGroup = $TestSID.Translate([System.Security.Principal.NTAccount])
+    Write-Host "[PASS] SID RESOLUTION CHECK: $TestGroup" -ForegroundColor Green
+} catch {
+    Write-Error "FATAL: Unable to resolve Administrator SID. System Localization issue?"
     Exit
 }
 
