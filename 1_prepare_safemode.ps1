@@ -15,7 +15,7 @@
 .NOTES
     PROJECT: killSlop
     VERSION: 0.0.3
-    PLATFORM: Windows 11 (23H2 / 24H2)
+    PLATFORM: Windows 11 24H2
 #>
 
 # CONFIGURATION
@@ -27,7 +27,7 @@ $StagingPath = Join-Path $StagingDir "2_kill_defender.ps1"
 # 0. PRIVILEGE CHECK
 if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     Write-Error "FATAL: Administrative privileges required."
-    Exit
+    Exit 1
 }
 
 Clear-Host
@@ -47,7 +47,7 @@ $UserAck = Read-Host "TYPE 'I HAVE MY PASSWORD' TO CONFIRM PRE-REQUISITES"
 
 if ($UserAck -ne "I HAVE MY PASSWORD") {
     Write-Warning "ABORTED: Safety interlock triggered. Code 0xUSER_CANCEL."
-    Exit
+    Exit 0
 }
 
 # 1.1 SID RESOLUTION CHECK (Pre-Flight)
@@ -57,7 +57,7 @@ try {
     Write-Host "[PASS] SID RESOLUTION CHECK: $TestGroup" -ForegroundColor Green
 } catch {
     Write-Error "FATAL: Unable to resolve Administrator SID. System Localization issue?"
-    Exit
+    Exit 1
 }
 
 # 2. TAMPER PROTECTION VERIFICATION
@@ -67,7 +67,7 @@ try {
     if ($MpStatus.IsTamperProtected -eq $true) {
         Write-Host "[FAIL] TAMPER PROTECTION IS ACTIVE." -ForegroundColor Red
         Write-Host "ACTION: Disable manually in Windows Security > Virus & Threat Protection." -ForegroundColor Red
-        Exit
+        Exit 1
     }
     Write-Host "[PASS] TAMPER PROTECTION IS DISABLED." -ForegroundColor Green
 }
@@ -89,7 +89,7 @@ catch {
 Write-Host "[INFO] DEPLOYING PAYLOAD..." -ForegroundColor Gray
 if (!(Test-Path $PayloadSource)) {
     Write-Error "FATAL: Payload source not found: $PayloadSource"
-    Exit
+    Exit 1
 }
 if (!(Test-Path $StagingDir)) { New-Item -ItemType Directory -Path $StagingDir | Out-Null }
 Copy-Item -Path $PayloadSource -Destination $StagingPath -Force
@@ -122,7 +122,7 @@ Write-Host "[INFO] CONFIGURING BOOT SEQUENCE (SAFEMODE_NETWORK)..." -ForegroundC
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[FAIL] BCD MODIFICATION FAILED." -ForegroundColor Red
-    Exit
+    Exit 1
 }
 
 Write-Host ""

@@ -16,6 +16,8 @@
     PLATFORM: Windows 11 (Safe Mode)
 #>
 
+# SilentlyContinue required: Safe Mode environment limits service/WMI availability.
+# Critical operations use explicit try/catch blocks for targeted error handling.
 $ErrorActionPreference = "SilentlyContinue"
 $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
@@ -46,6 +48,7 @@ function Grant-RegistryAccess {
         # Take Ownership
         $ACL.SetOwner($Admin)
         $RegKey.SetAccessControl($ACL)
+        $RegKey.Close()
 
         # Grant Full Control
         $RegKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($KeyPath.Replace("HKLM:\", ""), [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::ChangePermissions)
@@ -64,7 +67,8 @@ try {
     if (!(Test-Path (Split-Path $LogPath))) {
         New-Item -ItemType Directory -Path (Split-Path $LogPath) -Force | Out-Null
     }
-    Start-Transcript -Path $LogPath -Append | Out-Null
+    $TranscriptPath = "C:\DefenderKill\killSlop_transcript.txt"
+    Start-Transcript -Path $TranscriptPath -Append | Out-Null
 
     # 0. PRIVILEGE ESCALATION
     $Definition = @"
@@ -126,6 +130,8 @@ try {
 
     # 1. SERVICE CONFIGURATION
     Write-KillSlopLog "Configuring Services..." "PROC" "Cyan"
+    # SYNC-REQUIRED: This list is mirrored in 3_verify_status.ps1.
+    # Any modification here MUST be reflected there and vice versa.
     $TargetServices = @(
         "WinDefend",   # Antivirus Service
         "Sense",       # Advanced Threat Protection

@@ -45,6 +45,13 @@ jobs:
           zip -r ../killSlop_${{ steps.tag_version.outputs.new_tag }}.zip .
           cd ..
 
+      - name: Generate SHA256 Checksum
+        if: steps.tag_version.outputs.new_tag
+        run: |
+          sha256sum killSlop_${{ steps.tag_version.outputs.new_tag }}.zip \
+            > killSlop_${{ steps.tag_version.outputs.new_tag }}.zip.sha256
+          cat killSlop_${{ steps.tag_version.outputs.new_tag }}.zip.sha256
+
       - name: Create GitHub Release
         if: steps.tag_version.outputs.new_tag # Only run if a new tag was created
         uses: softprops/action-gh-release@v2
@@ -52,5 +59,7 @@ jobs:
           tag_name: ${{ steps.tag_version.outputs.new_tag }}
           name: Release ${{ steps.tag_version.outputs.new_tag }}
           body: ${{ steps.tag_version.outputs.changelog }}
-          files: killSlop_${{ steps.tag_version.outputs.new_tag }}.zip
+          files: |
+            killSlop_${{ steps.tag_version.outputs.new_tag }}.zip
+            killSlop_${{ steps.tag_version.outputs.new_tag }}.zip.sha256
           token: ${{ secrets.GITHUB_TOKEN }}
