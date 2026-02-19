@@ -14,7 +14,7 @@
 
 .NOTES
     PROJECT: killSlop
-    VERSION: 0.0.2
+    VERSION: 0.0.3
     PLATFORM: Windows 11 (23H2 / 24H2)
 #>
 
@@ -32,7 +32,7 @@ if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
 
 Clear-Host
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "   killSlop v0.0.2 // PREPARATION" -ForegroundColor Cyan
+Write-Host "   killSlop v0.0.3 // PREPARATION" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -78,7 +78,7 @@ catch {
 # 3. SYSTEM SNAPSHOT
 Write-Host "[INFO] GENERATING RESTORE POINT..." -ForegroundColor Gray
 try {
-    Checkpoint-Computer -Description "Checkpoint_killSlop_v0.0.2" -RestorePointType "MODIFY_SETTINGS"
+    Checkpoint-Computer -Description "Checkpoint_killSlop_v0.0.3" -RestorePointType "MODIFY_SETTINGS"
     Write-Host "[PASS] RESTORE POINT CREATED." -ForegroundColor Green
 }
 catch {
@@ -87,6 +87,10 @@ catch {
 
 # 4. PAYLOAD DEPLOYMENT
 Write-Host "[INFO] DEPLOYING PAYLOAD..." -ForegroundColor Gray
+if (!(Test-Path $PayloadSource)) {
+    Write-Error "FATAL: Payload source not found: $PayloadSource"
+    Exit
+}
 if (!(Test-Path $StagingDir)) { New-Item -ItemType Directory -Path $StagingDir | Out-Null }
 Copy-Item -Path $PayloadSource -Destination $StagingPath -Force
 Write-Host "[PASS] PAYLOAD STAGED: $StagingPath" -ForegroundColor Green

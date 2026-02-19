@@ -10,15 +10,13 @@
 
 .NOTES
     PROJECT: killSlop
-    VERSION: 0.0.2
+    VERSION: 0.0.3
 #>
-
-param()
 
 $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "   killSlop v0.0.2 // VERIFICATION (DEEP DIVE)" -ForegroundColor Cyan
+Write-Host "   killSlop v0.0.3 // VERIFICATION (DEEP DIVE)" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -45,7 +43,7 @@ if (Test-Path $LogPath) {
 
 # 2. PROCESS AUDIT
 Write-Host "`n[INFO] SCANNING MEMORY RESIDUE..." -ForegroundColor Gray
-$Procs = Get-Process -Name "MsMpEng", "NisSrv", "MsSense" -ErrorAction SilentlyContinue
+$Procs = Get-Process -Name "MsMpEng", "NisSrv", "MsSense", "MpCmdRun", "SecurityHealthSystray" -ErrorAction SilentlyContinue
 
 if ($Procs) {
     Write-Host "[FAIL] ACTIVE THREAT HANDLERS DETECTED:" -ForegroundColor Red
@@ -80,17 +78,18 @@ foreach ($SvcName in $Services) {
     $Color = "DarkGray"
 
     if ($Svc) {
+        $RegStart = $null
         try {
             # Direct Registry Query for Truth regarding Start Type
             $RegStart = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$SvcName" -ErrorAction Stop).Start
-            $StartType = $RegStart
+            $StartType = if ($null -ne $RegStart) { $RegStart.ToString() } else { "MISSING" }
         } catch {
             $StartType = "ACCESS_DENIED/MISSING"
         }
 
         $StatusStr = $Svc.Status
 
-        if ($Svc.Status -eq 'Running' -or ($RegStart -ne 4 -and $null -ne $RegStart)) {
+        if ($Svc.Status -eq 'Running' -or ($null -ne $RegStart -and $RegStart -ne 4)) {
             $Color = "Red" # Failed state
         } elseif ($RegStart -eq 4) {
             $Color = "Green" # Compliance

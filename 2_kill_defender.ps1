@@ -12,7 +12,7 @@
 
 .NOTES
     PROJECT: killSlop
-    VERSION: 0.0.2
+    VERSION: 0.0.3
     PLATFORM: Windows 11 (Safe Mode)
 #>
 
@@ -61,6 +61,9 @@ function Grant-RegistryAccess {
 
 # --- MAIN EXECUTION BLOCK ---
 try {
+    if (!(Test-Path (Split-Path $LogPath))) {
+        New-Item -ItemType Directory -Path (Split-Path $LogPath) -Force | Out-Null
+    }
     Start-Transcript -Path $LogPath -Append | Out-Null
 
     # 0. PRIVILEGE ESCALATION
@@ -119,7 +122,7 @@ try {
     [TokenManipulator]::EnablePrivilege("SeRestorePrivilege") | Out-Null
     Write-KillSlopLog "Privileges Escalated (SeTakeOwnership, SeRestore)" "INIT" "Magenta"
 
-    Write-KillSlopLog "=== killSlop v0.0.2 INITIATED ===" "INIT" "Magenta"
+    Write-KillSlopLog "=== killSlop v0.0.3 INITIATED ===" "INIT" "Magenta"
 
     # 1. SERVICE CONFIGURATION
     Write-KillSlopLog "Configuring Services..." "PROC" "Cyan"
@@ -200,6 +203,9 @@ finally {
     # 4. RESTORATION & EGRESS
     Write-KillSlopLog "Restoring Boot Configuration..." "PROC" "Cyan"
     & bcdedit.exe /deletevalue "{current}" safeboot
+    if ($LASTEXITCODE -ne 0) {
+        Write-KillSlopLog "BCD RESTORE FAILED (LASTEXITCODE=$LASTEXITCODE). Manual restore required." "WARN" "Yellow"
+    }
 
     Write-KillSlopLog "=== PROTOCOL COMPLETE. REBOOTING. ===" "EXIT" "Magenta"
     Stop-Transcript | Out-Null
