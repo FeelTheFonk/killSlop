@@ -1,6 +1,6 @@
 # killSlop
 
-![Version](https://img.shields.io/badge/Version-0.0.2-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-0.0.3-blue?style=flat-square)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2011%2024H2-0078D4?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-gray?style=flat-square)
 
@@ -69,11 +69,11 @@ Disabling kernel-level security modules has distinct side effects. This protocol
 
 | Component | Status | Impact Analysis |
 | :--- | :--- | :--- |
-| **Windows Update** | ⚠️ Partial | Core OS updates will continue. Updates specific to Defender (Intelligence/Engine) will fail. |
-| **Microsoft Store** | ✅ Stable | Store Apps generally function. Some banking/enterprise apps requiring "Device Health Attestation" may refuse to run. |
-| **Network Stack** | ⚡ Optimized | `WdNisDrv` (Network Inspection) removal eliminates packet inspection overhead. No known stack breakage in 24H2. |
-| **System Stability** | ⚠️ Low Risk | Removing `WdFilter.sys` prevents minifilter conflicts (`sprotect.sys`), potentially *reducing* BSODs on specific NVMe hardware. |
-| **Security Center** | ❌ Disabled | The UI will report "Unknown" or be inaccessible. Notifications will cease. |
+| **Windows Update** | [Partial] | Core OS updates will continue. Updates specific to Defender (Intelligence/Engine) will fail. |
+| **Microsoft Store** | [Stable] | Store Apps generally function. Some banking/enterprise apps requiring "Device Health Attestation" may refuse to run. |
+| **Network Stack** | [Optimized] | `WdNisDrv` (Network Inspection) removal eliminates packet inspection overhead. No known stack breakage in 24H2. |
+| **System Stability** | [Low Risk] | Removing `WdFilter.sys` prevents minifilter conflicts (`sprotect.sys`), potentially *reducing* BSODs on specific NVMe hardware. |
+| **Security Center** | [Disabled] | The UI will report "Unknown" or be inaccessible. Notifications will cease. |
 
 ## Disclaimer
 

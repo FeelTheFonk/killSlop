@@ -66,7 +66,6 @@ try {
     $TargetServices = @(
         "WinDefend",   # Antivirus Service
         "Sense",       # Advanced Threat Protection
-        "WdBoot",      # Boot Driver
         "WdFilter",    # Mini-Filter
         "WdNisSvc",    # Network Inspection Service
         "WdNisDrv",    # Network Inspection Driver
@@ -74,7 +73,8 @@ try {
         "SgrmBroker",  # System Guard Broker
         "SgrmAgent",   # System Guard Agent
         "MDCoreSvc",   # Microsoft Defender Core (24H2)
-        "webthreatdefusersvc" # Web Threat Defense (24H2)
+        "webthreatdefusersvc", # Web Threat Defense (24H2)
+        "SenseCncProxy" # Defender for Endpoint C&C (24H2)
     )
 
     foreach ($Svc in $TargetServices) {
