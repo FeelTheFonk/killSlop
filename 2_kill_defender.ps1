@@ -21,7 +21,6 @@ $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
 # --- LOGGING SUBSYSTEM ---
 function Write-Log {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
     param ( [string]$Message, [string]$Level = "INFO", [string]$Color = "Gray" )
     $Time = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $Line = "[$Time] [$Level] $Message"

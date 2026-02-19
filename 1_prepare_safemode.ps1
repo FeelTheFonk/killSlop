@@ -18,9 +18,6 @@
     PLATFORM: Windows 11 (23H2 / 24H2)
 #>
 
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
-param()
-
 # CONFIGURATION
 $ErrorActionPreference = "Stop"
 $PayloadSource = Join-Path $PSScriptRoot "2_kill_defender.ps1"
