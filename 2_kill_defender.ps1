@@ -72,7 +72,9 @@ try {
         "WdNisDrv",    # Network Inspection Driver
         "wscsvc",      # Security Center
         "SgrmBroker",  # System Guard Broker
-        "SgrmAgent"    # System Guard Agent
+        "SgrmAgent",   # System Guard Agent
+        "MDCoreSvc",   # Microsoft Defender Core (24H2)
+        "webthreatdefusersvc" # Web Threat Defense (24H2)
     )
 
     foreach ($Svc in $TargetServices) {

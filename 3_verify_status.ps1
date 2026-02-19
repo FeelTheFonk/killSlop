@@ -41,7 +41,7 @@ if ($Procs) {
 
 # 3. SERVICE CONFIGURATION AUDIT
 Write-Host "`n[INFO] AUDITING SERVICE CONFIGURATION..." -ForegroundColor Gray
-$Services = @("WinDefend", "Sense", "WdBoot", "WdFilter", "WdNisSvc", "SgrmBroker")
+$Services = @("WinDefend", "Sense", "WdBoot", "WdFilter", "WdNisSvc", "SgrmBroker", "MDCoreSvc", "webthreatdefusersvc")
 
 foreach ($SvcName in $Services) {
     $Svc = Get-Service -Name $SvcName -ErrorAction SilentlyContinue

