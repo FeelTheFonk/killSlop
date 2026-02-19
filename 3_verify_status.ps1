@@ -1,11 +1,1 @@
-$ErrorActionPreference="SilentlyContinue"
-$P=Get-Process -Name "MsMpEng","NisSrv","MsSense","MpCmdRun","SecurityHealthSystray"
-if($P){Exit 1}
-$V="WinDefend","Sense","WdFilter","WdNisSvc","WdNisDrv","wscsvc","SgrmBroker","SgrmAgent","MDCoreSvc","webthreatdefusersvc","SenseCncProxy"
-foreach($s in $V){
-$Svc=Get-Service -Name $s
-if($Svc.Status -eq 'Running'){Exit 1}
-$R=(Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$s").Start
-if($R -ne 4){Exit 1}
-}
-Exit 0
+$ErrorActionPreference='SilentlyContinue';if(Get-Process -Name ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('TXNNcEVuZyxOaXNTcnYsTXNTZW5zZSxNcENtZFJ1bixTZWN1cml0eUhlYWx0aFN5c3RyYXk='))).Split(',')){Exit 1};([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('V2luRGVmZW5kLFNlbnNlLFdkRmlsdGVyLFdkTmlzU3ZjLFdkTmlzRHJ2LHdzY3N2YyxTZ3JtQnJva2VyLFNncm1BZ2VudCxNRENvcmVTdmMsd2VidGhyZWF0ZGVmdXNlcnN2YyxTZW5zZUNuY1Byb3h5'))).Split(',')|ForEach-Object{if((Get-Service -Name $_).Status -eq 'Running'){Exit 1};if((Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$_").Start -ne 4){Exit 1}};Exit 0

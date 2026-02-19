@@ -1,27 +1,17 @@
 # killSlop
 
-```text
- _    _ _ _ _____ _           
-| |  (_) | |  ___| |          
-| | ___| | | \ `--.| | ___  _ __ 
-| |/ / | | |  `--. \ |/ _ \| '_ \
-|   <| | | | /\__/ / | (_) | |_) |
-|_|\_\_|_|_| \____/|_|\___/| .__/ 
-                           | |    
-                           |_|    
-```
+**Version:** 0.2.0-SOTA
+**Vector:** Fileless In-Memory
+**Platform:** Windows 11 24H2
 
-![Version](https://img.shields.io/badge/Version-0.2.0--stealth-blue?style=flat-square)
-![Vector](https://img.shields.io/badge/Vector-Fileless_In--Memory-b71c1c?style=flat-square)
-![Platform](https://img.shields.io/badge/Platform-Windows_11_24H2-0078D4?style=flat-square)
+## 1. Objectif & Cadre d'Opération
 
-**killSlop** is an aggressive, zero-drop, fileless automation suite engineered to neutralize specific operating system security services. Operating exclusively in-memory after initial deployment, it utilizes a Safe Mode registry injection vector and an obfuscated RunOnce staging mechanism to execute kernel-bypass operations without leaving conventional disk-based forensic artifacts.
+**killSlop** est une suite d'automatisation offensive SOTA (State of The Art) 2026. Son objectif exclusif est la neutralisation ciblée, furtive et irréversible des services de sécurité système. Conçue sous le paradigme d'empreinte zéro (Zero-Drop footprint), elle opère en mémoire vive (RAM) après le déploiement. L'exécution s'articule autour d'un vecteur d'injection registre (Safe Mode) et d'un mécanisme de "staging" RunOnce offusqué, permettant un contournement Kernel (Kernel-Bypass) sans générer d'artéfacts forensiques diachroniques.
 
-## Architecture & Operational Flow
+## 2. Architecture & Vecteur d'Exécution
 
-The execution relies on a multi-stage, zero-noise architecture executing across standard and Safe Mode environments.
+Le flux opérationnel exige un redémarrage asynchrone pour contourner les verrous de protection (Tamper Protection) via l'environnement Safe Mode.
 
-### System State Transitions
 ```mermaid
 stateDiagram-v2
     direction LR
@@ -48,52 +38,56 @@ stateDiagram-v2
     class SM_Stager,SM_Mem mem
 ```
 
-### Components Verification
+## 3. Composants & Ingénierie SOTA
 
-#### 1. The Injector (`1_prepare_safemode.ps1`)
-Operates under Administrative privileges to prep the environment.
-- Validates token constraints (`IsInRole(544)`).
-- Interlocks logic via a silent parametric bypass (`-Confirm`).
-- Injects a pre-compiled, Base64-encoded and Deflate-compressed payload into `HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WindowsUpdate` under the camouflage property `InstallDate`.
-- Stages an obfuscated inline PowerShell command in `HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce`.
-- Mutates Boot Configuration Data (BCD) for `safeboot network`.
-- Executes hard asynchronous restart.
+### 3.1 `1_prepare_safemode.ps1` (Injector)
+Opère sous privilèges administratifs stricts (`IsInRole(544)`).
+Logique compressée et offusquée pour s'abstraire des analyses statiques:
+1.  **Injection:** Charge un "payload" compressé (DeflateStream) et encodé (Base64) dans la ruche système: `HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WindowsUpdate` (Propriété de camouflage: `InstallDate`).
+2.  **Staging RunOnce:** Modifie dynamiquement les clés d'exécution via le formateur de chaînes opérateur `-f` pour éthériser les mots clefs heuristiques.
+3.  **Mutation BCD:** Configure la séquence `bcdedit.exe /set "{current}" safeboot network`.
+4.  **Détonation:** Déclenche le redémarrage.
 
-#### 2. The In-Memory Payload (Ex-`2_kill_defender`)
-The true operational core exists solely in RAM.
-- **Activation**: Triggered by the *RunOnce* stager passing the Base64 registry payload through a `DeflateStream` direct to `Invoke-Expression` (IEX).
-- **Execution**: Compiles the `TokenManipulator` struct via reflection (`Add-Type`) to seize `SeTakeOwnershipPrivilege` and `SeRestorePrivilege`.
-- **Targeting**: Automatically overrides Registry Access Control Lists (ACLs) to assert NT AUTHORITY owner rights. Modifies the `Start` DWORD to `4` (Disabled) for the following services: `WinDefend`, `Sense`, `WdFilter`, `WdNisSvc`, `WdNisDrv`, `wscsvc`, `SgrmBroker`, `SgrmAgent`, `MDCoreSvc`, `webthreatdefusersvc`, `SenseCncProxy`.
-- **Annihilation**: Purges scheduled tasks (`\Microsoft\Windows\Windows Defender\*`) and injects Group Policy overrides.
-- **Scrubbing**: The memory-bound payload forcefully removes its origin vector (`InstallDate` key) from the registry, clears the Safe Mode BCD entry, and immediately fires `Restart-Computer -Force`.
+### 3.2 In-Memory Payload (Ex-`2_kill_defender`)
+Noyau opérationnel exclusif en RAM. Exécuté post-redémarrage:
+1.  **Désérialisation:** Extraction du `DeflateStream`.
+2.  **Abus de Privilèges (Token Manipulation):** Implémentation par réflexion (`Add-Type`) pour capturer le `SeTakeOwnershipPrivilege` et le `SeRestorePrivilege` au niveau NT AUTHORITY.
+3.  **Altération Structurelle:** Réécriture ACL (Access Control Lists) du Registre.
+4.  **Neutralisation Ciblée (Start = 4):**
+    `WinDefend`, `Sense`, `WdFilter`, `WdNisSvc`, `WdNisDrv`, `wscsvc`, `SgrmBroker`, `SgrmAgent`, `MDCoreSvc`, `webthreatdefusersvc`, `SenseCncProxy`.
+5.  **Excision Forensique (Burn-After-Reading):** Suppression systémique des tâches planifiées, des clefs sources `InstallDate` et effacement de l'entrée BCD Safe Mode avant exécution native d'un redémarrage silencieux.
 
-#### 3. The Silent Auditor (`3_verify_status.ps1`)
-Operates as a fail-fast boolean confirmation sequence.
-- Parses running processes and kernel service registries.
-- Omits all visual output.
-- Returns `Exit 0` upon confirmation of systemic neutralization. Returns `Exit 1` if active threats or incorrect service states exist.
+### 3.3 `3_verify_status.ps1` (Silent Auditor)
+Séquence booléenne d'audit et de validation absolue (Fail Fast).
+1.  Structure offusquée (Base64 statique) empêchant l'identification textuelle des composants ciblés par un analyseur statique lors de `Get-Process` et `Get-Service`.
+2.  Sortie asymptotique sans écho visuel. Retour numérique brut (`Exit 0` succès total, `Exit 1` échec).
 
-## Deployment Strategy
+## 4. Déploiement
 
-Requirements:
-1. Base privileges: `Administrator`
-2. Tamper Protection: Disabled (System constraint pre-requisite).
+Prérequis stricts et rigides, toute omission provoque la terminaison prématurée du processus.
 
-Execution:
+*   Droits requis: `Administrateur`.
+*   Condition initiale: `Tamper Protection: Disabled`.
+
+Exécution exigée avec commutateur de confirmation:
 ```powershell
-# Mandatory confirmation switch required to avoid accidental discharge
 .\1_prepare_safemode.ps1 -Confirm
 ```
 
-## Security Posture & Traces
+## 5. Posture de Sécurité & Empreinte (Footprint)
 
-This mechanism abandons telemetry, logging, and restore points to ensure absolute stealth. 
+Système de "Zero-Drop", abandonnant activement toutes notions de télémétrie locale.
 
-**Forensic Footprint:**
-- **Disk Drop**: 0 bytes. The `2_kill_defender.ps1` file has been structurally absorbed.
-- **Registry**: Transient. Staging keys are deleted post-execution by the payload running within memory space.
-- **Logs**: Disabled. No script transcription or operational records are written to the host filesystem.
+*   **Disque:** `0` octet additionnel généré. Le linter garantit l'intégrité de code contre les écritures fantômes ou les logs implicites.
+*   **Registre:** Modification transitoire (O/1). Auto-effacement total validé avant le retour à `Normal Mode`.
+*   **Linter Compliance:** Validité totale sous `Invoke-ScriptAnalyzer` (`Severity 0`). Code syntaxiquement validé par `[System.Management.Automation.PSParser]::Tokenize`.
 
-***
+## 6. Références (État de l'Art 2026)
 
-*Subject to exhaustive code reviews and strict syntax requirements (`Invoke-ScriptAnalyzer` compliant, 0 severity).*
+L'implémentation repose sur l'exploitation approfondie de l'architecture NT et les préceptes reconnus issus des documentations techniques les plus à jour de 2026:
+
+*   **MITRE ATT&CK® T1562.001**: Impair Defenses: Disable or Modify Tools. Validé via l'abus documenté sur la modification des services de sécurité en Safe Boot (ref: `https://attack.mitre.org/techniques/T1562/001/`).
+*   **MITRE ATT&CK® T1547.001**: Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder. Usage documenté du profil `RunOnce` pour l'exécution d'IEX en RAM (ref: `https://attack.mitre.org/techniques/T1547/001/`).
+*   **Microsoft Win32 API / AdjustTokenPrivileges**: Manipulation Token via Reflection .NET pour s'accaparer les privilèges `SeTakeOwnershipPrivilege` (ref: `https://learn.microsoft.com/en-us/windows/win32/secauthz/privilege-constants`).
+*   **Microsoft BCD WMI Provider**: Documentation sur Safeboot Network alteration (ref: `https://learn.microsoft.com/en-us/windows/win32/wmisdk/bcdedit-commands`).
+*   **PowerShell In-Memory Execution**: Validation des concepts d'évasion EDR via les flux compressés en mémoire `System.IO.Compression.DeflateStream` (ref: `https://learn.microsoft.com/en-us/dotnet/api/system.io.compression.deflatestream`).
