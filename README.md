@@ -1,63 +1,70 @@
 # killSlop
 
-**Version:** 1.0.1
-**Vecteur d'Exécution:** Fileless In-Memory (Safe Mode Stager)
+**Version:** 2.0.0 (Apogée SOTA Edition)
+**Vecteur d'Exécution:** Fileless In-Memory (Zero-Drop Service Injector)
 **Plateforme Cible:** Windows 11 (24H2)
 
 ## 1. Philosophie et Périmètre
 
-`killSlop` est un outil d'administration asynchrone conçu pour la neutralisation ciblée et irréversible des composants de télémétrie, des routines d'E/S en arrière-plan, et des services de sécurité embarqués (Defender/EDR). 
+`killSlop` est un outil d'administration drastique, asynchrone et chirurgical conçu pour la neutralisation ciblée, irréversible et furtive des composants de télémétrie, des routines d'E/S en arrière-plan et des services de sécurité embarqués (Defender/EDR).
 
-L'architecture repose sur un principe d'**empreinte nulle (Zero-Drop)** :
-*   Aucun binaire n'est déposé sur le disque de la machine cible.
-*   L'intégralité du code asymétrique s'exécute en mémoire vive (RAM) via un flux compressé (`DeflateStream`).
-*   L'élévation de privilèges (Acquisition de `SeTakeOwnershipPrivilege`) se fait via réflexion C# `.NET` native, s'affranchissant des utilitaires tiers.
-*   L'opération nettoie asynchroniquement ses propres clés de registre d'injection avant de restituer l'environnement standard.
+L'architecture repose sur un principe absolu d'**Empreinte Nulle (Zero-Drop)** et de **Furtivité Maximale (Stealth Obfuscation)** :
+*   **Zero-Drop :** Aucun binaire exécutable (.exe, .dll) n'est déposé sur le disque.
+*   **In-Memory :** L'intégralité de la charge d'ablation s'exécute en mémoire vive via un flux natif compressé (`DeflateStream`).
+*   **Stealth Maxillaire & Obfuscation SOTA :** L'intégralité des pointeurs de services (`ksSvc`, `powershell.exe`) et des arguments d'amorçage BCD (`safeboot`, `network`) est reconstruite formellement à la volée via des matrices d'entiers (`[char[]]`). Les chemins système critiques extirpés (ruches Registre `Policies`, répertoires `Tasks`) sont désérialisés dynamiquement depuis du Base64, éradiquant virtuellement la signature comportementale contre l'analyse statique et parasismique des EDR. Le pointeur d'amorçage lui-même emploie l'appel `EncodedCommand` (`-e`).
+*   **Privilège Actif :** L'acquisition de privilèges ring-0/SYSTEM (notamment `SeTakeOwnershipPrivilege`) est gérée dynamiquement par réflexion C# (`P/Invoke`) dans le PowerShell.
+*   **Furtivité Log :** Toute trace comportementale de l'exécution en Safe Mode est dissimulée dans un fichier journal en mode Caché/Système (`C:\ProgramData\ksi.log`).
 
-Ce projet s'adresse à des environnements maîtrisés (postes dédiés à la performance stricte, machines d'analyse isolées) où les cycles CPU, l'IOPS, et la bande passante réseau ne doivent subir aucune interférence de l'OS.
+## 2. Architecture Technique & Fail-Safe
 
-## 2. Architecture Technique
+La séquence critique exploite un passage transitif et invisible par le **Safe Mode System** (Mode sans échec) pour contourner les protections `Tamper Protection` qui verrouillent les ruches de registre et ACLs MS de l'environnement standard.
 
-La séquence d'exécution exploite le passage par le **Safe Mode** pour contourner le verrouillage (`Tamper Protection`) des ruches de registre et des ACL des services Windows.
+### La Chaîne d'Infection (Zero-Interaction)
 
-1.  **Phase d'Injection Normale (`i.ps1`) :** Le script d'injection requiert les privilèges Administrateur. Il encode la charge utile dans la clé `InstallDate` de Windows Update (`HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WindowsUpdate`). Il inscrit ensuite une tâche de lancement asynchrone (RunOnce) ciblant l'exécutable PowerShell en mode non-interactif et masqué.
-2.  **Modification d'Amorçage :** Le `bcdedit` est configuré pour forcer le prochain redémarrage en `safeboot network`. 
-3.  **Phase Asynchrone (Safe Mode Logon) :** Le Stager s'exécute. Il désérialise, décompresse, et exécute en mémoire le flux contenant les instructions d'ablation.
-4.  **Éradication & Restitution :** Les services ciblés sont passés en statut `4` (Désactivé), les tâches planifiées sont annihilées. L'injecteur nettoie la clé `InstallDate`, supprime l'indicateur `safeboot` du BCD, et déclenche le redémarrage final vers l'environnement standard.
+1.  **Phase d'Injection Normale (`i.ps1`) :** Le script d'injection (tournant avec UAC Administrateur Bypass) encode et dissimule la charge utile compressée au sein de la clé Registre `InstallDate` de Windows Update. Il crée ensuite le **Service Système Autonome Temporaire** (`ksSvc`) pointant sur le flux de décodage chiffré. L'exception d'amorçage en mode sécurisé (`SafeBoot\Network`) est appliquée au service pour garantir son lancement pré-logon (sans nécessité du mot de passe utilisateur). L'instruction BCD de SafeBoot est envoyée. La machine redémarre.
+2.  **Phase Asynchrone (Safe Mode Logon) :** Avant l'interface de connexion, le *Service LocalSystem* `ksSvc` est invoqué. Il décompresse via flux Deflate la payload d'ablation.
+3.  **Éradication Physique (`p.ps1`) :** Les processus et clés Registres ETW/Télémétrie/Defender sont désactivés ou corrompus. Les tâches planifiées (inaccessibles par API en mode sans échec) sont détruites *à la hache* via les routines bas niveau du système de fichiers (`takeown`, `icacls`).
+4.  **Auto-Nettoyage :** La payload efface sa clé d'hibernation `InstallDate`, purge le service `ksSvc` et purifie l'exception SafeBoot. Le reboot normal est appelé.
+
+### Sécurité Anti-Blocage : Mécanisme "Fail-Safe"
+Pour éliminer le risque (boot-loop ou blocage en Safe Mode) lié aux modifications du BCD, un blindage applicatif est intégré :
+*   **Purge Top-Chrono :** La MILLISECONDE 0 du script en Safe Mode force l'ablation du tag BCD `safeboot`. En cas de crash instantané consécutif, la machine redémarrera de façon classique.
+*   **Encapsulage Restrictif (`Try/Catch/Finally`) :** Même si un vecteur (ACL invalide, processus MS manquant) jette une exception critique bloquante, le bloc `Finally` est déclenché inconditionnellement pour purger le Registre, purger le BCD et lancer un `shutdown.exe /r /t 0 /f` chirurgical.
 
 ## 3. Guide d'Exécution (How-To)
 
-L'exécution doit être infaillible. Toute intervention humaine ou popup est proscrite durant la séquence.
+L'exécution doit être infaillible. Aucune action humaine n'est requise.
 
 ### Prérequis
-*   Tamper Protection : **Désactivé** (Nécessaire pour l'injection initiale).
-*   Privilèges : **Administrateur local** exigé.
+*   Tamper Protection Windows : **Désactivé** (Nécessaire temporairement pour l'injection).
+*   Privilèges : **Administrateur local**.
 
 ### Déploiement
 
-Un point d'exécution unique, stable et pré-configuré est fourni via le script batch `run.bat`.
+Un point d'exécution unique et masqué est fourni : `run.bat`.
 
-1.  Lancez le fichier `run.bat` d'un simple clic (ou depuis un terminal `cmd` / `powershell`).
-2.  Le script gère dynamiquement l'élévation de privilèges UAC si nécessaire.
-3.  Le script applique un `ExecutionPolicy Bypass` à l'instance pour éviter tout blocage pré-SafeMode.
-4.  Il transfère le contrôle à l'injecteur silencié (`i.ps1 -Confirm`).
-5.  Aucune interaction n'est requise de votre part. La machine redémarrera d'elle-même en Safe Mode, exécutera le nettoyage en millisecondes de manière invisible, puis redémarrera une seconde fois en mode normal.
+1.  Double-cliquez simplement sur `run.bat`.
+2.  L'invite UAC va s'afficher (approbation des privilèges administrateur).
+3.  **Ne touchez plus à rien.** Le terminal se fermera après quelques secondes. L'ordinateur redémarrera automatiquement, affichera un écran noir/de chargement puis redémarrera une **seconde** fois pour aboutir sur votre session classique, net et purifié.
 
-### Audit Post-Opération
+### Audit Post-Opération (Lecture des Logs Furtifs)
 
-Pour valider cliniquement le succès du déploiement sans générer de logs verbeux, exécutez le senseur booléen :
+Pour suivre l'audit temporel de l'exécution, vous pouvez lire le log caché :
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\c.ps1
+Get-Content -Path "C:\ProgramData\ksi.log" -Force
 ```
 
-*   Une exécution sans aucune sortie et un `Exit Code 0` (`$LASTEXITCODE` sous PowerShell) confirme que l'intégralité des 19 vecteurs cibles (Services, Autologgers WMI, Télémétrie, GPO Applicative) est neutralisée.
+Une exécution parfaite laissera 2 empreintes : *[INJECT] DEPLOY* et *[INJECT] BCK_OK*. L'environnement cible aura perdu sa télémétrie silencieusement.
 
-## 4. Maintenance / Modifications du Payload
+## 4. Compilation et Build (Zero-Intervention)
 
-Le code source d'ablation réside dans `src/p.ps1`. Il n'est pas utilisé directement lors de l'attaque. En cas de modification (ajout d'un service cible, retrait d'un ETW), la mécanique suivante s'impose :
+En cas d'altération ou d'ajout de vecteurs d'attaque au sein du module noyau `src/p.ps1`, la reconstruction de l'injecteur est **100% automatisée**, silencieuse et sans intermédiaire.
+Exécutez la routine de compilation :
 
-1.  Mettez à jour `src/p.ps1`.
-2.  Compressez et encodez son contenu : Le flux est minifié (suppression des retours charriots), converti en `MemoryStream`, compressé via `DeflateStream`, puis encodé en Base64.
-3.  La chaîne Base64 résultante (`src/e.bin`) doit être assignée à la variable `$b` dans `i.ps1`.
-4.  Privilégiez toujours l'usage du `$ErrorActionPreference = 'SilentlyContinue'` (minifié en `$E`) pour garantir un `No-Block` lors de l'exécution RunOnce.
+```powershell
+.\build.ps1
+```
+
+Le compilo s'occupe d'appliquer un **Minifier formel** stricte (ablation des Return/Linefeed, compression des variables logiques), et une compression GZip absolue de niveau `Optimal` (`DeflateStream`). Le code génère le hash matriciel Base64 et l'**injecte directement** via substitution par Regex au travers de la variable dormante de l'injecteur racine `i.ps1`.
+Zéro extraction manuelle, zéro manipulation de buffer binaire intermédiaire, zéro faille. Architecture hermétique, prête au déploiement instantané.
