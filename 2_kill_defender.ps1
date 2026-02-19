@@ -20,7 +20,7 @@ $ErrorActionPreference = "SilentlyContinue"
 $LogPath = "C:\DefenderKill\killSlop_log.txt"
 
 # --- LOGGING SUBSYSTEM ---
-function Write-Log {
+function Write-KillSlopLog {
     param ( [string]$Message, [string]$Level = "INFO", [string]$Color = "Gray" )
     $Time = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $Line = "[$Time] [$Level] $Message"
@@ -33,7 +33,7 @@ function Grant-RegistryAccess {
     param ( [string]$KeyPath )
     if (!(Test-Path $KeyPath)) { return }
     
-    Write-Log "Adjusting ACLs for: $KeyPath" "ACL" "DarkGray"
+    Write-KillSlopLog "Adjusting ACLs for: $KeyPath" "ACL" "DarkGray"
     try {
         # Open Key with TakeOwnership Right
         $RegKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($KeyPath.Replace("HKLM:\", ""), [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::TakeOwnership)
@@ -52,17 +52,17 @@ function Grant-RegistryAccess {
         $RegKey.SetAccessControl($ACL)
     }
     catch {
-        Write-Log "ACL Modification Failed: $_" "ERR" "Yellow"
+        Write-KillSlopLog "ACL Modification Failed: $_" "ERR" "Yellow"
     }
 }
 
 # --- MAIN EXECUTION BLOCK ---
 try {
     Start-Transcript -Path $LogPath -Append | Out-Null
-    Write-Log "=== killSlop v0.0.1 INITIATED ===" "INIT" "Magenta"
+    Write-KillSlopLog "=== killSlop v0.0.1 INITIATED ===" "INIT" "Magenta"
 
     # 1. SERVICE CONFIGURATION
-    Write-Log "Configuring Services..." "PROC" "Cyan"
+    Write-KillSlopLog "Configuring Services..." "PROC" "Cyan"
     $TargetServices = @(
         "WinDefend",   # Antivirus Service
         "Sense",       # Advanced Threat Protection
@@ -83,23 +83,23 @@ try {
             Grant-RegistryAccess -KeyPath $RegPath
             try {
                 Set-ItemProperty -Path $RegPath -Name "Start" -Value 4 -Type DWord -ErrorAction Stop
-                Write-Log "Service Disabled: $Svc" "OK" "Green"
+                Write-KillSlopLog "Service Disabled: $Svc" "OK" "Green"
             } catch {
-                Write-Log "Failed to Disable: $Svc ($_)" "FAIL" "Red"
+                Write-KillSlopLog "Failed to Disable: $Svc ($_)" "FAIL" "Red"
             }
         } else {
-            Write-Log "Service Not Found: $Svc" "SKIP" "DarkGray"
+            Write-KillSlopLog "Service Not Found: $Svc" "SKIP" "DarkGray"
         }
     }
 
     # 2. TASK CONFIGURATION
-    Write-Log "Configuring Scheduled Tasks..." "PROC" "Cyan"
+    Write-KillSlopLog "Configuring Scheduled Tasks..." "PROC" "Cyan"
     $TaskRoot = "\Microsoft\Windows\Windows Defender"
     Get-ScheduledTask -TaskPath "$TaskRoot\*" | Disable-ScheduledTask | Out-Null
-    Write-Log "Tasks Disabled." "OK" "Green"
+    Write-KillSlopLog "Tasks Disabled." "OK" "Green"
 
     # 3. POLICY CONFIGURATION
-    Write-Log "Configuring Group Policies..." "PROC" "Cyan"
+    Write-KillSlopLog "Configuring Group Policies..." "PROC" "Cyan"
     $PolicyPaths = @(
         "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender",
         "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection",
@@ -124,20 +124,20 @@ try {
     foreach ($Key in $Overrides.Keys) {
         foreach ($Val in $Overrides[$Key].Keys) {
             Set-ItemProperty -Path $Key -Name $Val -Value $Overrides[$Key][$Val] -Type DWord
-            Write-Log "Policy Applied: $Key\$Val" "POL" "Yellow"
+            Write-KillSlopLog "Policy Applied: $Key\$Val" "POL" "Yellow"
         }
     }
 
 }
 catch {
-    Write-Log "CRITICAL RUNTIME ERROR: $_" "FATAL" "Red"
+    Write-KillSlopLog "CRITICAL RUNTIME ERROR: $_" "FATAL" "Red"
 }
 finally {
     # 4. RESTORATION & EGRESS
-    Write-Log "Restoring Boot Configuration..." "PROC" "Cyan"
+    Write-KillSlopLog "Restoring Boot Configuration..." "PROC" "Cyan"
     & bcdedit.exe /deletevalue "{current}" safeboot
     
-    Write-Log "=== PROTOCOL COMPLETE. REBOOTING. ===" "EXIT" "Magenta"
+    Write-KillSlopLog "=== PROTOCOL COMPLETE. REBOOTING. ===" "EXIT" "Magenta"
     Stop-Transcript | Out-Null
     Start-Sleep -Seconds 3
     Restart-Computer -Force
