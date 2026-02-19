@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Semantic Release & Publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for changelog generation
+
+      - name: Calculate Version & Tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch
+          release_branches: main
+          # This action automatically calculates the next version based on commits (fix->patch, feat->minor, BREAKING->major)
+          # It outputs 'new_tag' and 'changelog' for the next step.
+          dry_run: false # We want to push the tag if a release is warranted.
+
+      - name: Package Artifacts
+        if: steps.tag_version.outputs.new_tag # Only run if a new tag was created
+        run: |
+          mkdir release_pkg
+          # Select strictly only the production files
+          cp 1_prepare_safemode.ps1 release_pkg/
+          cp 2_kill_defender.ps1 release_pkg/
+          cp 3_verify_status.ps1 release_pkg/
+          cp README.md release_pkg/
+          
+          # Zip it up cleanly
+          cd release_pkg
+          zip -r ../killSlop_${{ steps.tag_version.outputs.new_tag }}.zip .
+          cd ..
+
+      - name: Create GitHub Release
+        if: steps.tag_version.outputs.new_tag # Only run if a new tag was created
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
+          files: killSlop_${{ steps.tag_version.outputs.new_tag }}.zip
+          token: ${{ secrets.GITHUB_TOKEN }}

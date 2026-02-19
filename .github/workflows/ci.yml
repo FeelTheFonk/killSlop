@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint:
+    name: PSScriptAnalyzer & Cleanliness
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          # Enforce strict rules: Errors and Warnings must be zero.
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning
+          if ($results) {
+              Write-Error "PSScriptAnalyzer found issues:"
+              $results | Format-Table -AutoSize
+              exit 1
+          } else {
+              Write-Host "PSScriptAnalyzer passed cleanly." -ForegroundColor Green
+          }
+
+      - name: Validate Syntax (Dry Run)
+        shell: pwsh
+        run: |
+          # Basic syntax check on all .ps1 files
+          Get-ChildItem -Path . -Filter *.ps1 -Recurse | ForEach-Object {
+              Write-Host "Checking syntax: $($_.Name)"
+              $err = $null
+              [System.Management.Automation.PSParser]::Tokenize((Get-Content $_.FullName -Raw), [ref]$err) | Out-Null
+              if ($err) {
+                  Write-Error "Syntax error in $($_.Name)"
+                  $err | Format-Table
+                  exit 1
+              }
+          }
