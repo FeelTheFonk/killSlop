@@ -12,7 +12,7 @@
 
 .NOTES
     PROJECT: killSlop
-    VERSION: 0.0.3
+    VERSION: 0.1.1
     PLATFORM: Windows 11 (Safe Mode)
 #>
 
@@ -126,7 +126,7 @@ try {
     [TokenManipulator]::EnablePrivilege("SeRestorePrivilege") | Out-Null
     Write-KillSlopLog "Privileges Escalated (SeTakeOwnership, SeRestore)" "INIT" "Magenta"
 
-    Write-KillSlopLog "=== killSlop v0.0.3 INITIATED ===" "INIT" "Magenta"
+    Write-KillSlopLog "=== killSlop v0.1.1 INITIATED ===" "INIT" "Magenta"
 
     # 1. SERVICE CONFIGURATION
     Write-KillSlopLog "Configuring Services..." "PROC" "Cyan"
